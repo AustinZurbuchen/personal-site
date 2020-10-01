@@ -1,0 +1,51 @@
+.profile {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff6db;
+  }
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-right: auto;
+  margin-left: auto;
+  padding: 40px 180px;
+  max-width: 1280px;
+}
+
+.titles {
+  text-align: center;
+  width: 100%;
+  min-height: 40px;
+  border-bottom: 1px solid #727878;
+  margin: 40px;
+}
+
+.title {
+  text-align: center;
+  width: 100%;
+  min-height: 40px;
+  line-height: 80px;
+  font-size: 54px;
+  font-family: "Courier New", Courier, monospace;
+  color: #22a39f;
+  margin-top: 40px;
+}
+.subtitle {
+  text-align: center;
+  min-width: 20%;
+  min-height: 40px;
+  line-height: 40px;
+  font-size: 22px;
+  font-family: "Courier New", Courier, monospace;
+  color: #727878;
+  margin-bottom: 30px;
+}
+
+.info {
+  width: 50%;
+}
