@@ -3,10 +3,6 @@ import Button from "../button/index.js";
 import "./index.scss";
 
 class Header extends Component {
-  constructor(props) {
-    super(props);
-  }
-
   render() {
     return (
       <div className="header">

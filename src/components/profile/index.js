@@ -1,21 +1,17 @@
 import React, { Component } from 'react';
+import Titles from '../titles/index';
+import Aboutme from '../aboutme/index';
 import './index.scss';
 
 class Profile extends Component {
-    constructor(props) {
-        super(props);
-    }
-
     render() {
+        const body = "I am a Front End Developer who focuses on writing clean, elegant and efficient code. I am experienced with the latest front end technologies such as Angular, React, and back end technologies such as NodeJS, etc. Worked with teams of several sizes ranging from 3 - 15 developers.";
         return (
             <div className="profile">
                 <div className="container">
-                    <div className="titles">
-                        <div className="title">Profile</div>
-                        <div className="subtitle">This is the subTitle</div>
-                    </div>
+                    <Titles title="Profile" subtitle="Front End Developer"></Titles>
                     <div className="info">
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+                        <Aboutme title="About Me" body={body}></Aboutme>
                     </div>
                 </div>
             </div>

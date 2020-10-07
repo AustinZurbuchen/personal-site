@@ -1,0 +1,19 @@
+.aboutme {
+    display: flex;
+    flex-direction: column;
+    width: 33%;
+}
+
+#aboutmeTitle {
+    text-align: left;
+    min-height: 40px;
+    line-height: 40px;
+    font-size: 28px;
+    font-family: "Courier New", Courier, monospace;
+    margin-bottom: 20px;
+}
+
+.body {
+    text-align: left;
+    font-family: "Courier New", Courier, monospace;
+}
