@@ -1,10 +1,11 @@
 .profile {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: #fff6db;
-  }
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #fff6db;
+  height: 100vh;
+}
 
 .container {
   display: flex;
