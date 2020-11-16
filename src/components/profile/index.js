@@ -17,8 +17,8 @@ class Profile extends Component {
     return (
       <div className="profile">
         <div className="container">
-          <Titles title="Profile" subtitle="Front End Developer"></Titles>
-          <div className="info">
+          <Titles title="Profile" subtitle="Software Developer"></Titles>
+          <div className="info row">
             <Aboutme title="About Me" body={body}></Aboutme>
             <Photo></Photo>
             <Details title="Details" body={detailBody}></Details>

@@ -15,3 +15,9 @@ code {
 .bold {
   font-weight: bold;
 }
+.row {
+  flex-direction: row;
+}
+.column {
+  flex-direction: column;
+}

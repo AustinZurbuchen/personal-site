@@ -1,8 +1,9 @@
-import React from 'react';
-import Header from './components/header/index.js';
-import Name from './components/name/index.js';
-import Profile from './components/profile/index.js';
-import './App.scss';
+import React from "react";
+import Header from "./components/header/index.js";
+import Name from "./components/name/index.js";
+import Profile from "./components/profile/index.js";
+import Experiences from "./components/experiences/index";
+import "./App.scss";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         {/* <Header></Header> */}
         <Name></Name>
         <Profile></Profile>
+        <Experiences></Experiences>
       </div>
     </div>
   );
