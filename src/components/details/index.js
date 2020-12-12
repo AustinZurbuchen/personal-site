@@ -8,7 +8,7 @@ const Details = ({ title, body }) => {
       <div className="title" id="detailsTitle">
         {title}
       </div>
-      <div className="body">
+      <div className="body spreadtext">
         <div className="bodyTitle bold">Name:</div>
         <div className="bodyContent">{name}</div>
         <div className="bodyTitle bold">Age:</div>

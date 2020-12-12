@@ -7,7 +7,7 @@ const Aboutme = ({ title, body }) => {
       <div className="title" id="aboutmeTitle">
         {title}
       </div>
-      <div className="body">{body}</div>
+      <div className="body collapsedtext">{body}</div>
     </div>
   );
 };

@@ -1,0 +1,40 @@
+.experienceitem {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  color: #434242;
+
+  .namedate {
+    display: flex;
+    justify-content: left;
+    width: 33%;
+
+    .institution {
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+
+    .date {
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+  }
+
+  .titlebody {
+    display: flex;
+    justify-content: right;
+    width: 66%;
+
+    .experiencetitle {
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+
+    .body {
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+  }
+}

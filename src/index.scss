@@ -16,8 +16,30 @@ code {
   font-weight: bold;
 }
 .row {
+  display: flex;
   flex-direction: row;
 }
 .column {
+  display: flex;
   flex-direction: column;
+}
+
+.biggertext {
+  font-size: 20px;
+}
+
+.smalltitle {
+  font-size: 30px;
+  font-family: "Courier New", Courier, monospace;
+  color: #22a39f;
+  margin-top: 20px;
+  letter-spacing: -0.05em;
+}
+
+.collapsedtext {
+  line-height: 18px;
+}
+
+.spreadtext {
+  line-height: 28px;
 }
