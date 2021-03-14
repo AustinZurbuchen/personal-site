@@ -1,52 +1,14 @@
 import React, { Component } from "react";
 import Titles from "../titles/index";
 import Experiencelist from "../experiencelist/index";
-import Experienceitem from "../experienceitem/index";
+import { generateEducations, generateCareers } from "../../utils/experiences";
 import "./index.scss";
 
 class Experiences extends Component {
   render() {
-    let educations = [
-      <Experienceitem
-        institution="institution"
-        date="startdate - enddate"
-        title="title"
-        body="body body body body body body body body body body body body body body body body body body body"
-      ></Experienceitem>,
-      <Experienceitem
-        institution="institution"
-        date="startdate - enddate"
-        title="title"
-        body="body body body body body body body body body body body body body body body body body body body"
-      ></Experienceitem>,
-      <Experienceitem
-        institution="institution"
-        date="startdate - enddate"
-        title="title"
-        body="body body body body body body body body body body body body body body body body body body body"
-      ></Experienceitem>,
-    ];
+    let educations = generateEducations();
     let educationItems = <>{educations}</>;
-    let careers = [
-      <Experienceitem
-        institution="institution"
-        date="startdate - enddate"
-        title="title"
-        body="body body body body body body body body body body body body body body body body body body body"
-      ></Experienceitem>,
-      <Experienceitem
-        institution="institution"
-        date="startdate - enddate"
-        title="title"
-        body="body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body body"
-      ></Experienceitem>,
-      <Experienceitem
-        institution="institution"
-        date="startdate - enddate"
-        title="title"
-        body="body body body body body body body body body body body body body body body body body body body"
-      ></Experienceitem>,
-    ];
+    let careers = generateCareers();
     let careerItems = <>{careers}</>;
     return (
       <div className="experiences">
@@ -62,7 +24,7 @@ class Experiences extends Component {
               items={educationItems}
             ></Experiencelist>
             <Experiencelist
-              title="careers"
+              title="Careers"
               items={careerItems}
             ></Experiencelist>
           </div>
