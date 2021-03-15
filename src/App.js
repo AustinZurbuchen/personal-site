@@ -4,6 +4,7 @@ import Name from "./components/name/index.js";
 import Profile from "./components/profile/index.js";
 import Experiences from "./components/experiences/index";
 import Abilities from "./components/abilities/index";
+import Footer from "./components/footer/index";
 import "./App.scss";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Profile></Profile>
         <Experiences></Experiences>
         <Abilities></Abilities>
+        <Footer></Footer>
       </div>
     </div>
   );
