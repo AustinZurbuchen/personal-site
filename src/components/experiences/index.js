@@ -1,32 +1,30 @@
 import React, { Component } from "react";
 import Titles from "../titles/index";
-import Experiencelist from "../experiencelist/index";
+import Itemslist from "../itemslist/index";
 import { generateEducations, generateCareers } from "../../utils/experiences";
 import "./index.scss";
 
+const quote = require("../../data/quotes.json")[0];
+
 class Experiences extends Component {
   render() {
-    let educations = generateEducations();
-    let educationItems = <>{educations}</>;
-    let careers = generateCareers();
-    let careerItems = <>{careers}</>;
+    let educationItems = <>{generateEducations()}</>;
+    let careerItems = <>{generateCareers()}</>;
     return (
       <div className="experiences">
         <div className="container">
           <Titles
             title="Experiences"
-            subtitle='"The most important word a man can say are, ‘I will do better.‘"'
-            by='- "Dalinar Kholin", Oathbringer by Brandon Sanderson'
+            subtitle={quote.quote}
+            by={quote.by}
           ></Titles>
           <div className="info column">
-            <Experiencelist
-              title="Educations"
-              items={educationItems}
-            ></Experiencelist>
-            <Experiencelist
-              title="Careers"
-              items={careerItems}
-            ></Experiencelist>
+            <div className="educations">
+              <Itemslist title="Educations" items={educationItems}></Itemslist>
+            </div>
+            <div className="careers">
+              <Itemslist title="Careers" items={careerItems}></Itemslist>
+            </div>
           </div>
         </div>
       </div>

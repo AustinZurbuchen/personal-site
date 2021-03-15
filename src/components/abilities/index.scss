@@ -1,0 +1,43 @@
+.abilities {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  min-height: 100vh;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-right: auto;
+  margin-left: auto;
+  padding: 40px 180px;
+  max-width: 810px;
+}
+
+.list {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  border-top: 1px solid #727878;
+
+  .languages {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    border-top: 0px;
+  }
+
+  .technologies {
+    width: 50%;
+    display: flex;
+    justify-content: right;
+    margin-left: 20px;
+    border-top: 0px;
+  }
+}

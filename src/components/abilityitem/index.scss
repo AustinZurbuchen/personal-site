@@ -1,0 +1,28 @@
+.abilityitem {
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  color: #434242;
+  width: 100%;
+
+  .ability {
+    display: flex;
+    justify-content: left;
+    width: 80%;
+  }
+
+  .starsContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+
+    .stars {
+      display: flex;
+      flex-direction: row;
+      justify-content: right;
+      align-items: flex-end;
+    }
+  }
+}
