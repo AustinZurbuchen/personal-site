@@ -3,7 +3,9 @@ import Abilityitem from "../components/abilityitem/index";
 
 const abilityData = require("../data/abilities.json");
 export function generateLanguages() {
-  let languages = abilityData[0];
+  let languages = abilityData[0].sort((a, b) => {
+    return b.stars - a.stars;
+  });
   let languageComponents = [];
 
   for (let language of languages) {
@@ -18,7 +20,9 @@ export function generateLanguages() {
 }
 
 export function generateTechnologies() {
-  let technologies = abilityData[1];
+  let technologies = abilityData[1].sort((a, b) => {
+    return b.stars - a.stars;
+  });
   let technologyComponents = [];
 
   for (let technology of technologies) {
