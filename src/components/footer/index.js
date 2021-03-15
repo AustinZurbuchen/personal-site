@@ -1,4 +1,3 @@
-import { queryByPlaceholderText } from "@testing-library/dom";
 import React, { Component } from "react";
 import Titles from "../titles/index";
 import "./index.scss";
