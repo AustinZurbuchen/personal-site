@@ -15,7 +15,7 @@ class Footer extends Component {
             <div className="link email">{links.email}</div>
             <div className="link linkedin">
               {" "}
-              <a href={links.linkedin}>linkedin</a>
+              <a href={links.linkedin}>Linkedin</a>
             </div>
             <div className="link github">
               {" "}
