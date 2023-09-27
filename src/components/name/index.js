@@ -1,19 +1,15 @@
-import React, { Component } from "react";
+import React from "react";
+import { useSelector } from 'react-redux';
 import "./index.scss";
 
-class Name extends Component {
-  constructor(props) {
-    super(props);
-    this.name = "Austin Zurbuchen";
-  }
+function Name() {
+  const resume = useSelector((state) => state.resume.value);
 
-  render() {
-    return (
-      <div className="nameContainer">
-        <div className="name"> {this.name} </div>
-        <div className="subText"> Resume </div>
-      </div>
-    );
-  }
+  return (
+    <div className="nameContainer">
+      <div className="name"> {resume.profile.name} </div>
+      <div className="subText"> Resume </div>
+    </div>
+  );
 }
 export default Name;
