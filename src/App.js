@@ -12,7 +12,6 @@ function App() {
 
   useEffect(() => {
     axios.post('http://localhost:5001/getResume').then(response => {
-      console.log(response.data);
       dispatch(update(response.data));
     }).catch(err => {
       console.log(err);

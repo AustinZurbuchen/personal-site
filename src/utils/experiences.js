@@ -1,9 +1,9 @@
 import React from "react";
 import ExperienceItem from "../components/experienceitem/index";
 
-const experiences = require("../data/experiences.json");
-export function generateEducations() {
-  let educations = experiences[0];
+// const experiences = require("../data/experiences.json");
+export function generateEducations(educations) {
+  // let educations = experiences[0];
   let educationComponents = [];
 
   let i = 0;
@@ -22,8 +22,8 @@ export function generateEducations() {
   return educationComponents;
 }
 
-export function generateCareers() {
-  let careers = experiences[1];
+export function generateCareers(careers) {
+  // let careers = experiences[1];
   let careerComponents = [];
 
   let i = 0;
