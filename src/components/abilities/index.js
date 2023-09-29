@@ -8,17 +8,15 @@ import "./index.scss";
 function Abilities() {
   const resume = useSelector((state) => state.resume.value);
   let languages = <>{generateLanguages([...resume.abilities.languages])}</>;
-  let technologies = <>{generateTechnologies([...resume.abilities.technologies])}</>;
+  let technologies = (
+    <>{generateTechnologies([...resume.abilities.technologies])}</>
+  );
   let quote = resume.quotes[1];
 
   return (
     <div className="abilities">
       <div className="container">
-        <Titles
-          title="Abilities"
-          subtitle={quote.quote}
-          by={quote.by}
-        ></Titles>
+        <Titles title="Abilities" subtitle={quote.quote} by={quote.by}></Titles>
         <div className="list column">
           <div className="languages">
             <Itemslist title="Languages" items={languages}></Itemslist>

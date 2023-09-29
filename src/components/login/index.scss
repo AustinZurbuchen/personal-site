@@ -1,0 +1,36 @@
+.loginContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgb(37, 37, 37);
+  min-height: 100vh;
+  text-align: center;
+  justify-content: center;
+}
+
+.title {
+  color: white;
+}
+
+.usernameContainer {
+  margin: 10px;
+  width: 15%;
+}
+
+.passwordContainer {
+  margin: 10px;
+  width: 15%;
+}
+
+.submitContainer {
+  margin: 10px;
+  width: 15%;
+
+  .submit {
+    width: 100%;
+  }
+}
+
+.createContainer {
+  margin: 10px;
+}
