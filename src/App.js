@@ -14,7 +14,7 @@ function App() {
 
   useEffect(() => {
     axios
-      .post("http://localhost:5001/getResume")
+      .get(`${process.env.REACT_APP_API_URL}/getResume`)
       .then((response) => {
         dispatch(update(response.data));
       })
