@@ -20,7 +20,7 @@ function Login() {
     <div className="login">
       <ThemeProvider theme={darkTheme}>
         <div className="loginContainer">
-          <div className="title">Login</div>
+          <div className="loginTitle">Login</div>
           <div className="usernameContainer">
             <TextField
               required
