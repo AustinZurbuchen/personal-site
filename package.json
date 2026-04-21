@@ -22,7 +22,7 @@
     "react-error-overlay": "6.0.9"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "cross-env NODE_ENV=development react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -43,7 +43,8 @@
     ]
   },
   "devDependencies": {
-    "sass": "^1.68.0",
-    "react-error-overlay": "6.0.9"
+    "cross-env": "^7.0.3",
+    "react-error-overlay": "6.0.9",
+    "sass": "^1.68.0"
   }
 }
