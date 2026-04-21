@@ -1,5 +1,5 @@
 import React from "react";
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@mui/material";
 import { toggle } from "../../reducers/editMode";
 import "./index.scss";
@@ -10,7 +10,7 @@ function Name() {
 
   return (
     <div className="nameContainer">
-      <Button className="edit-button-top-right" variant="contained" onClick={() => dispatch(toggle())}>Edit</Button>
+      {/* <Button className="edit-button-top-right" variant="contained" onClick={() => dispatch(toggle())}>Edit</Button> */}
       <div className="name"> {resume.profile.name} </div>
       <div className="subText"> Resume </div>
     </div>

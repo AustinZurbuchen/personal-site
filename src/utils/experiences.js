@@ -11,11 +11,11 @@ export function generateEducations(educations) {
     educationComponents.push(
       <ExperienceItem
         key={i.toString()}
-        institution={education.institution}
-        date={education.date}
+        company={education.company}
+        dateLabel={education.dateLabel}
         title={education.title}
         body={education.body}
-      ></ExperienceItem>
+      ></ExperienceItem>,
     );
     i++;
   }
@@ -31,11 +31,11 @@ export function generateCareers(careers) {
     careerComponents.push(
       <ExperienceItem
         key={i.toString()}
-        institution={career.institution}
-        date={career.date}
+        company={career.company}
+        dateLabel={career.dateLabel}
         title={career.title}
         body={career.body}
-      ></ExperienceItem>
+      ></ExperienceItem>,
     );
     i++;
   }
