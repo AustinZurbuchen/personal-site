@@ -1,34 +1,27 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { update } from "./reducers/resume";
 import Site from "./components/site/index";
+import Login from "./components/login";
 import "./App.scss";
-import useStore from "./store";
 
 function App() {
-  const [isBusy, setBusy] =
-    useState(true);
-  const resume = useStore(
-    (state) => state.resume
-  );
-  const setResume = useStore(
-    (state) => state.setResume
-  );
+  const resume = useSelector((state) => state.resume.value);
+  const [isBusy, setBusy] = useState(true);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     axios
-      .get(
-        "http://localhost:5000/getResume"
-      )
+      .get(`${process.env.REACT_APP_SERVER_URL}/getResume`)
       .then((response) => {
-        setResume(response.data);
+        dispatch(update(response.data));
       })
       .catch((err) => {
         console.log(err);
       });
-  }, [setResume]);
+  }, [dispatch]);
 
   useEffect(() => {
     if (resume && isBusy) {
@@ -38,9 +31,12 @@ function App() {
 
   return (
     <div className="App">
-      <div className="background">
-        {resume && !isBusy && <Site />}
-      </div>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={resume && !isBusy && <Site />} exact />
+          <Route path="/login" element={<Login />} exact />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }

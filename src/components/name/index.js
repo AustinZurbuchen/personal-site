@@ -1,22 +1,24 @@
 import React from "react";
-import useStore from "../../store";
+import { useDispatch, useSelector } from "react-redux";
+import { Button } from "@mui/material";
+import { toggle } from "../../reducers/editMode";
 import "./index.scss";
 
 function Name() {
-  const resume = useStore(
-    (state) => state.resume
-  );
+  const resume = useSelector((state) => state.resume.value);
+  const dispatch = useDispatch();
 
   return (
     <div className="nameContainer">
-      <div className="name">
-        {" "}
-        {resume.profile.name}{" "}
-      </div>
-      <div className="subText">
-        {" "}
-        Resume{" "}
-      </div>
+      <Button
+        className="edit-button-top-right hidden"
+        variant="contained"
+        onClick={() => dispatch(toggle())}
+      >
+        Edit
+      </Button>
+      <div className="name"> {resume.profile.name} </div>
+      <div className="subText"> Resume </div>
     </div>
   );
 }

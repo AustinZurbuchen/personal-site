@@ -36,3 +36,19 @@
   font-family: "Courier New", Courier, monospace;
   opacity: 1;
 }
+
+.edit-button-top-right {
+  position: absolute !important;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.edit-button-top-right:hover,
+.edit-button-top-right:focus {
+  background: rgba(0,0,0,0.05); // Optional: subtle hover effect
+}
