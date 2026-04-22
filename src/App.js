@@ -16,7 +16,7 @@ function App() {
     axios
       .get(`${process.env.REACT_APP_SERVER_URL}/getResume`)
       .then((response) => {
-        dispatch(update(response.data));
+        dispatch(update(response.data?.resume ?? response.data));
       })
       .catch((err) => {
         console.log(err);
