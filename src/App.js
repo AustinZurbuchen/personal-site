@@ -11,8 +11,15 @@ function App() {
   const resume = useSelector((state) => state.resume.value);
   const [isBusy, setBusy] = useState(true);
   const dispatch = useDispatch();
+  const runtimeServerUrl =
+    typeof window.__ENV__?.REACT_APP_SERVER_URL === "string"
+      ? window.__ENV__.REACT_APP_SERVER_URL
+      : "";
   const serverUrl =
-    window.__ENV__?.REACT_APP_SERVER_URL || process.env.REACT_APP_SERVER_URL || "";
+    runtimeServerUrl ||
+    (process.env.NODE_ENV === "development"
+      ? process.env.REACT_APP_SERVER_URL || ""
+      : "");
 
   useEffect(() => {
     axios
