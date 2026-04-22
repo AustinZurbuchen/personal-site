@@ -33,7 +33,7 @@ function App() {
   }, [dispatch, serverUrl]);
 
   useEffect(() => {
-    if (resume && isBusy) {
+    if (resume?.profile && isBusy) {
       setBusy(false);
     }
   }, [resume, isBusy]);
@@ -42,7 +42,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={resume && !isBusy && <Site />} exact />
+          <Route path="/" element={resume?.profile && !isBusy && <Site />} exact />
           <Route path="/login" element={<Login />} exact />
         </Routes>
       </BrowserRouter>
