@@ -8,3 +8,11 @@ services:
     ports:
       - "3000:80"
     restart: unless-stopped
+
+# Shared with the personal-site-py service so nginx.conf can proxy /api/ to
+# http://personal-site-py:5000/ by container name. Declared external because
+# the network is created and owned outside these compose files.
+networks:
+  default:
+    name: zurbnet
+    external: true

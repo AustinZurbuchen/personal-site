@@ -66,12 +66,13 @@ Verify each before acting; state is as of the last audit, not necessarily now.
 6. **No security headers** — no HSTS, `X-Content-Type-Options`,
    `Referrer-Policy`, or CSP.
 
-7. **The compose file is incomplete.** `docker-compose.yml` defines only
-   `personal-site`, but `nginx.conf` proxies to the hostname
-   `personal-site-py`. That resolution depends on a shared Docker network
-   wired up by hand on the NAS and declared nowhere in either repo. It breaks
-   silently. Getting both services into one compose file with an explicit
-   network would remove a whole class of outage.
+7. **Cross-container networking is now explicit.** Both repos'
+   `docker-compose.yml` declare the shared `zurbnet` network as
+   `external: true`, which is how `nginx.conf` resolves the hostname
+   `personal-site-py`. The network is created outside compose
+   (`docker network create zurbnet`). Never remove that declaration to
+   "simplify" a compose file — without it compose attaches the container to
+   a private default network and `/api/` starts returning 502.
 
 ## Rules
 

@@ -81,6 +81,12 @@ against a remote API will not work until that key is renamed.
 nginx proxies `/api/` → `http://personal-site-py:5000/`, so the frontend and
 backend are same-origin in production and CORS is not exercised.
 
+That hostname resolves because both containers share the `zurbnet` Docker
+network, declared `external: true` in both repos' `docker-compose.yml` and
+created outside compose (`docker network create zurbnet`). Removing that
+declaration puts the container on a private default network where
+`personal-site-py` does not resolve, and `/api/` returns 502.
+
 ## Design system
 
 There is no theme file; these values are duplicated across component SCSS.
