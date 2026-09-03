@@ -10,7 +10,7 @@ You handle everything between a git commit and a working austinzurbuchen.com.
 ## Topology
 
 ```
-Namecheap DNS → 98.252.87.179 (home IP, Synology NAS)
+Namecheap DNS → 98.252.87.179 (home IP, Unraid NAS)
   └─ Nginx Proxy Manager (openresty) — terminates TLS, Let's Encrypt
        └─ personal-site container (nginx:1.27-alpine, host :3000 → :80)
             ├─ serves the CRA build from /usr/share/nginx/html
@@ -25,6 +25,24 @@ Nginx Proxy Manager.
 **Production runs the `dev` branch.** `master` is behind and does not contain
 `Dockerfile`, `nginx.conf`, `docker-compose.yml`, or
 `docker-entrypoint.d/40-env-config.sh`. Never assume `master` is live.
+
+## How a change reaches production
+
+Registry-based, not build-on-host. Both containers are managed by Unraid's
+Docker Manager (`net.unraid.docker.managed: dockerman`), which pulls
+published images; there is no repo checkout or compose project on the NAS.
+
+    push to dev (frontend) / master (backend)
+      -> .github/workflows/publish.yml builds linux/amd64
+      -> pushes ghcr.io/austinzurbuchen/<repo>:latest and :sha-<commit>
+      -> Unraid pulls and recreates the container
+
+`linux/amd64` is mandatory — Unraid is x86_64 only, and an arm64 image fails
+at start with `exec format error`.
+
+The `docker-compose.yml` in each repo documents the intended topology and is
+useful for local work, but production does not use it. Editing compose does
+not change what runs on the NAS.
 
 ## Runtime env injection
 

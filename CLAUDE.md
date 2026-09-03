@@ -8,8 +8,16 @@ Flask API (separate repo, `../personal-site-py`).
 
 CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · MUI 5 + Emotion ·
 react-router-dom 6 · axios · Sass. Deployed as a Docker image (node:20-alpine
-build → nginx:1.27-alpine serve) on a Synology NAS behind Nginx Proxy Manager
+build → nginx:1.27-alpine serve) on an Unraid NAS behind Nginx Proxy Manager
 (openresty), DNS via Namecheap.
+
+**Deploys are registry-based, not build-on-host.** The container is managed by
+Unraid's Docker Manager (label `net.unraid.docker.managed: dockerman`), which
+pulls a published image rather than building from source — there is no repo
+checkout or compose project on the NAS. `.github/workflows/publish.yml` builds
+`linux/amd64` on push to `dev` and pushes to GHCR; the NAS then pulls.
+`docker-compose.yml` documents the intended topology and is useful locally,
+but it is **not** what runs in production.
 
 **Production runs the `dev` branch, not `master`.** `master` lags and does not
 contain the deploy machinery. Always confirm `git log origin/dev` before
