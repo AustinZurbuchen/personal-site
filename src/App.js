@@ -5,7 +5,6 @@ import { useDispatch } from "react-redux";
 import { update } from "./reducers/resume";
 import Site from "./components/site/index";
 import Loaderror from "./components/loaderror/index";
-import Login from "./components/login";
 import "./App.scss";
 
 function App() {
@@ -60,7 +59,6 @@ function App() {
             }
             exact
           />
-          <Route path="/login" element={<Login />} exact />
         </Routes>
       </BrowserRouter>
     </div>

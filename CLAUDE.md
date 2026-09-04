@@ -6,8 +6,10 @@ Flask API (separate repo, `../personal-site-py`).
 
 ## Stack
 
-CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · MUI 5 + Emotion ·
-react-router-dom 6 · axios · Sass. Deployed as a Docker image (node:20-alpine
+CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · react-router-dom 6 ·
+axios · Sass. **No component library** — MUI and Emotion were removed once the
+login page was deleted, taking the bundle from 375KB to 219KB. Do not add one
+back; the design system is hand-rolled SCSS and a library's defaults fight it. Deployed as a Docker image (node:20-alpine
 build → nginx:1.27-alpine serve) on an Unraid NAS behind Nginx Proxy Manager
 (openresty), DNS via Namecheap.
 
@@ -87,8 +89,9 @@ than inspecting the store. Do not reintroduce a gate like `resume?.profile` —
 such a gate opens before any response arrives, painting the blank skeleton. On
 a failed fetch the `loaderror` band renders instead of the hollow resume.
 
-`editMode` slice exists but nothing renders its toggle; the edit flow is
-unfinished. Treat it as WIP.
+`editMode` slice exists but nothing renders its toggle yet. It is kept for the
+planned edit mode; the MUI Edit button that used to reference it was deleted
+along with the login page, because it could never render.
 
 ## API URL resolution
 
@@ -106,6 +109,13 @@ against a remote API will not work until that key is renamed.
 
 nginx proxies `/api/` → `http://personal-site-py:5000/`, so the frontend and
 backend are same-origin in production and CORS is not exercised.
+
+`location /api/` wraps that proxy in `limit_except GET HEAD { deny all; }`, so
+**the public API is read-only by proof rather than by convention** — no non-GET
+method reaches Flask from the internet regardless of any application bug. The
+planned admin vhost is a separate `server` block on a port that is never
+published through Nginx Proxy Manager, and does not carry that restriction. Do
+not relax this block to make writes work.
 
 That hostname resolves because both containers share the `zurbnet` Docker
 network, declared `external: true` in both repos' `docker-compose.yml` and
