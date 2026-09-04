@@ -250,6 +250,17 @@ The heartbeat commit under `monitor/` is not noise: public repos have scheduled
 workflows auto-disabled after 60 days of inactivity, and this repo has had
 several quiet stretches longer than that.
 
+**Who watches the watcher.** Everything above can only report a problem while
+the workflow is still running; a workflow that stops firing produces no output
+to inspect, so nothing in this repo can detect its own silence. The
+`HEALTHCHECK_URL` secret points at a healthchecks.io check that expects a ping
+on a schedule and emails when one does not arrive — an observer whose failure
+mode is independent of GitHub Actions. It deliberately pings OK even on a WARN
+or CRITICAL verdict: it watches liveness, not the certificate. Letting a cert
+problem hold it down for 25 days would turn it into a second permanently-red
+alarm. Leave the secret unset and the step is a clean no-op, but then nothing
+is watching whether the monitor still runs.
+
 ## Commands
 
 ```

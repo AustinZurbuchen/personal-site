@@ -400,6 +400,49 @@ jobs:
               "https://ntfy.sh/$NTFY_TOPIC" >/dev/null
           fi
 
+      - name: Dead-man's switch — prove to an outside observer that this ran
+        if: always()
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        run: |
+          set -Eeuo pipefail
+
+          # This watches THE MONITOR, not the certificate. Everything above can
+          # only tell you something is wrong while it is still running; nothing
+          # in this repo can tell you it stopped running, because a workflow
+          # that never fires produces no output to inspect. healthchecks.io
+          # expects a ping on a schedule and emails when one fails to arrive,
+          # so its failure mode is independent of GitHub Actions entirely.
+          #
+          # Deliberately pings OK on a WARN or CRITICAL verdict: a cert problem
+          # is already reported by the issue, and letting it also hold this
+          # switch "down" for 25 days would turn a liveness signal into a
+          # second, redundant, permanently-red alarm.
+          if [ -z "${HEALTHCHECK_URL:-}" ]; then
+            echo "::notice::HEALTHCHECK_URL secret is not set — dead-man's switch disabled. Nothing is watching whether this workflow still runs."
+            exit 0
+          fi
+
+          BASE="${HEALTHCHECK_URL%/}"
+          if [ '${{ steps.check.outcome }}' = 'success' ]; then
+            TARGET="$BASE"
+            WHAT="ran to completion"
+          else
+            # The check died. Signal now rather than waiting for the grace
+            # period to lapse — a crash should page faster than a silence.
+            TARGET="$BASE/fail"
+            WHAT="FAILED to complete"
+          fi
+
+          # A third-party outage must not turn the certificate monitor red, but
+          # it must not pass silently either: an unnoticed ping failure is how
+          # the switch itself would rot.
+          if curl -fsS -m 15 --retry 3 --retry-delay 5 "$TARGET" >/dev/null 2>&1; then
+            echo "pinged healthchecks.io: cert-check $WHAT"
+          else
+            echo "::warning::could not reach healthchecks.io (cert-check $WHAT). If this repeats, the dead-man's switch will send a false alarm."
+          fi
+
       - name: Heartbeat — commit status, and keep the 60-day clock alive
         if: always() && github.event_name != 'workflow_dispatch'
         run: |

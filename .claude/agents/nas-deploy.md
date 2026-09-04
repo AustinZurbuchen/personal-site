@@ -92,6 +92,29 @@ Verify each before acting; state is as of the last audit, not necessarily now.
    "simplify" a compose file — without it compose attaches the container to
    a private default network and `/api/` starts returning 502.
 
+## Certificate monitoring
+
+`.github/workflows/cert-check.yml` on **`master`** (schedule only runs on the
+default branch) checks TLS twice daily from a GitHub runner — never from the
+NAS, which is the thing that failed in Aug 2026.
+
+Its primary check is **SAN resolution**, not expiry: Let's Encrypt validates
+every SAN before issuing, so one dead name fails renewal for the whole
+certificate. That is what happened, and from outside a doomed renewal is
+indistinguishable from a healthy cert, so expiry-watching cannot warn in time.
+
+Two things to respect when touching it:
+
+- **Thresholds (WARN 25d / CRIT 10d) sit below the ~30-day renewal trigger** so
+  a healthy cycle never alarms. Raising them makes the monitor cry wolf on
+  every successful renewal.
+- **Update `EXPECTED_SANS` whenever a hostname is added in Nginx Proxy
+  Manager.** The drift check exists to force that edit.
+
+The `HEALTHCHECK_URL` secret is a dead-man's switch watching whether the
+workflow still runs at all. It pings OK regardless of verdict — it is a
+liveness signal, not a second cert alarm.
+
 ## Rules
 
 1. **Diagnose from outside first.** `curl -sSk -D- https://austinzurbuchen.com`,
