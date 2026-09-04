@@ -9,6 +9,14 @@ services:
     # this file, but a mismatch here reads as a second source of truth.
     ports:
       - "8080:80"
+      # Admin vhost. BOUND TO LOOPBACK ON PURPOSE — "8081:8081" would bind
+      # 0.0.0.0, and /api/ on this port has no limit_except, so an unbound
+      # mapping puts POST /session and PUT /updateResume in front of anything
+      # that can route to the host. On the NAS the equivalent is
+      # `--publish <lan-ip>:8081:8081` in the Unraid template's Extra
+      # Parameters; never a plain Port entry, which has no host-IP field and
+      # always binds every interface.
+      - "127.0.0.1:8081:8081"
     restart: unless-stopped
 
 # Shared with the personal-site-py service so nginx.conf can proxy /api/ to

@@ -1,0 +1,105 @@
+// Edit mode's whole visual vocabulary, and it is borrowed rather than invented.
+// The button is components/loaderror/'s "Try again" (Courier, 18px, #434242 on
+// nothing, a 1px #727878 rule, 44px tall); the dividers are the same 1px
+// #727878 that separates the bands. No colour here is new.
+//
+// There is NO RED, because the palette has none, and an admin-only tool is a bad
+// reason to invent a token and re-measure it against three band colours. The
+// severity lives in the words.
+//
+// The bar rules live in this file rather than in profile/index.scss because
+// this component is the bar's only inhabitant, and stage 4's sections must
+// REUSE these class names rather than redeclare them -- redeclaring is how
+// .container ended up defined three times. All five names were grepped against
+// `grep -rn "^\.[a-zA-Z]" --include="*.scss" src/` and collide with nothing.
+
+.editcontrol {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  line-height: 1;
+  // #434242, the body token: 9.28:1 on the profile band, 8.70:1 on experiences,
+  // 10.02:1 on white. #727878 was considered and rejected -- it is 4.19:1 on
+  // #fff6db, which is why it is a rule colour in this system and not a text
+  // colour.
+  color: #434242;
+  background: none;
+  border: 1px solid #727878;
+  border-radius: 0;
+  padding: 10px 20px;
+  // 44px minimum touch target, as on loaderror's retry.
+  min-height: 44px;
+  cursor: pointer;
+}
+
+// See index.js: aria-disabled, not the disabled attribute, so focus is never
+// yanked out from under a keyboard user mid-save.
+.editcontrol[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+// For the dark admin bar, which borrows the footer's already-measured
+// #dfe0e0-on-#444242 pair (7.55:1).
+.editcontroldark {
+  color: #dfe0e0;
+  border-color: #dfe0e0;
+}
+
+.editbar {
+  // width:100% inside .container, which is a centred flex column -- the same
+  // thing .info already does to span the band.
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.editstatus {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  color: #434242;
+  margin: 0;
+  // Pins the status to the left of a flex-end row without a second container.
+  margin-right: auto;
+  text-align: left;
+}
+
+// The save-failure band, following loaderror's reasoning exactly: #434242 text
+// and a 1px #727878 rule rather than the heading teal, because an error should
+// not change meaning with the band colour it happens to land on.
+.editerror {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  line-height: 28px;
+  color: #434242;
+  background: none;
+  border: 1px solid #727878;
+  margin: 12px 0 0;
+  padding: 12px;
+  text-align: left;
+}
+
+// The site has exactly two breakpoints and this adds none. At 768px the bar
+// already wraps on its own; the controls only need to stop being the widest
+// thing in a 320px column.
+@media (max-width: 768px) {
+  .editbar {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .editcontrol,
+  .editstatus,
+  .editerror {
+    font-size: 16px;
+  }
+
+  .editcontrol {
+    padding: 10px 14px;
+  }
+}

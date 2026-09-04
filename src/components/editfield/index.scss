@@ -1,0 +1,42 @@
+// The whole point of the component. `font` is the shorthand, so family, size,
+// weight, style and line-height all arrive from the paragraph this textarea
+// replaced -- in About Me that is .body's Courier at the inherited size on
+// .collapsedtext's 18px line-height. Colour and letter-spacing are NOT part of
+// the font shorthand and are inherited by hand; left alone a textarea renders
+// in the UA's sans default in UA black and breaks the column it sits inside.
+.editfield {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+
+  display: block;
+  width: 100%;
+  margin: 0;
+  // The one thing that does move: 8px of inset and a 1px rule, because a field
+  // indistinguishable from a paragraph is not obviously editable. The
+  // constraint was that the TYPE does not jump, and it does not.
+  padding: 8px;
+  background-color: #ffffff;
+  border: 1px solid #727878;
+  border-radius: 0;
+  resize: vertical;
+  // Scoped to this element only. src/index.scss deliberately has no border-box
+  // reset -- it would collapse .container's approved 1170px border box to
+  // 810px -- so this stays here, where width:100% plus padding would otherwise
+  // overflow the 33% column.
+  box-sizing: border-box;
+  // Safari paints its own inner shadow and rounded corners on form controls and
+  // ignores the border above.
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+// readOnly for the length of a save (never disabled -- see index.js). Kept
+// legible rather than dimmed to the UA grey, which lands around 2:1 and would
+// make the text unreadable at the exact moment the user wants to check it.
+.editfield[readonly] {
+  cursor: progress;
+  background-color: #f3efe0;
+  color: inherit;
+  opacity: 1;
+}
