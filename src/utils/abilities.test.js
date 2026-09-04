@@ -1,4 +1,4 @@
-import { generateStars, generateLanguages } from "./abilities";
+import { generateStars, generateLanguages, normalizeStars } from "./abilities";
 
 // generateStars returns raw React elements, so these run with no DOM at all.
 const filledCount = (elements) =>
@@ -40,5 +40,36 @@ describe("generateLanguages", () => {
       "Python",
       "Go",
     ]);
+  });
+});
+
+describe("normalizeStars", () => {
+  // The glyph count and Abilityitem's "{n} out of 5" label are computed in two
+  // different files. Before this function existed they disagreed out of range:
+  // stars=7 drew 5 glyphs and announced "7 out of 5"; stars=undefined announced
+  // " out of 5", an empty accessible name.
+  it.each([
+    [0, 0],
+    [3, 3],
+    [5, 5],
+    [7, 5],
+    [99, 5],
+    [-1, 0],
+    [2.5, 3],
+    ["4", 4],
+    [undefined, 0],
+    [null, 0],
+    ["not a number", 0],
+  ])("normalizes %p to %p", (input, expected) => {
+    expect(normalizeStars(input)).toBe(expected);
+  });
+
+  it("always agrees with the number of filled glyphs", () => {
+    [0, 3, 5, 7, 99, -1, 2.5, "4", undefined, null, "x"].forEach((input) => {
+      const filled = generateStars(input).filter(
+        (el) => el.props.children === "\u2605"
+      ).length;
+      expect(filled).toBe(normalizeStars(input));
+    });
   });
 });

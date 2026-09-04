@@ -50,7 +50,7 @@ exist, so they are not undone:
 - `Photo` (`components/photo/index.js`) is an empty `div` with no image and no
   alt text.
 - Footer links are `#727878` on `#444242` — roughly 2.3:1, well under the 4.5:1
-  WCAG AA threshold for body text.
+  WCAG AA threshold for body text. (Fixed: now `#dfe0e0` at 7.55:1.)
 - Star ratings in `utils/abilities.js` are `&#9733;` glyphs in bare divs. A
   screen reader announces a row of "black star" with no rating value. These
   need a text alternative (e.g. `role="img"` with an `aria-label` of
@@ -67,9 +67,13 @@ exist, so they are not undone:
 
 2. **Defer to the design system.** Every color you touch must stay within the
    palette documented in `CLAUDE.md` and enforced by the `site-stylist` agent.
-   When fixing the footer contrast, lighten toward an existing neutral rather
-   than inventing a new gray; if nothing in the palette clears AA, say so and
-   propose the minimum change rather than picking a value silently.
+   If nothing in the palette clears AA, say so and propose the minimum change
+   rather than picking a value silently.
+
+   The heading teal and the hero wash are already tuned to the contrast bar and
+   have almost no margin — `#1f9693` clears 3:1 by 0.12 on `#f3efe0`, and the
+   hero wash's alpha is what holds white text at 0.6% failing instead of 19%.
+   Re-measure against the real assets before changing either.
 
 3. **Semantic markup is a safe win.** Swapping a `div` for `<section>` or a
    styled `div` for `<h2>` changes the a11y tree without changing pixels, as

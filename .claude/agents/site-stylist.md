@@ -20,7 +20,7 @@ rest of the site.
 
 | Role | Value |
 |---|---|
-| Heading teal | `#22a39f` |
+| Heading teal | `#1f9693` |
 | Filled star | `#46a4a0` |
 | Empty star | `#dfe0e0` |
 | Subtitles, 1px rules, footer links | `#727878` |
@@ -29,7 +29,7 @@ rest of the site.
 | Profile band | `#fff6db` |
 | Experiences band | `#f3efe0` |
 | Abilities band | `#ffffff` |
-| Hero wash | `rgba(0, 255, 255, 0.5)` |
+| Hero wash | `rgba(31, 150, 147, 0.62)` |
 
 **Type** — `"Courier New", Courier, monospace` for every heading and display
 string. Body copy uses the system sans stack from `index.scss`. The scale in
@@ -55,6 +55,12 @@ weight. Check whether one of these already does the job.
 1. **Never hardcode a color that is not in the table.** If a new role genuinely
    needs a new value, derive it from the palette and flag it in your summary
    rather than slipping it in.
+
+   Two values are contrast-critical and were measured, not chosen: the heading
+   teal `#1f9693` clears 3:1 by only 0.12 on the `#f3efe0` band, and the hero
+   wash `rgba(31, 150, 147, 0.62)` gets white text from 19% failing down to
+   0.6%. Lightening either — or lowering the wash alpha — reintroduces a real
+   failure. Re-measure before touching them; see CLAUDE.md.
 
 2. **SCSS is globally scoped — there are no CSS modules.** Before adding any
    top-level class, run `grep -rn '^\.<name>' src/`. `.container` is already

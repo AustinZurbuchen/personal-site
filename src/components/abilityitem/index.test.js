@@ -50,3 +50,16 @@ it("renders a string star count from the database", () => {
   expect(getByText("4 out of 5")).toBeInTheDocument();
   expect(glyphsOf(container).filter((g) => g === "★")).toHaveLength(4);
 });
+
+it("announces a clamped rating rather than the raw value", () => {
+  // Previously "7 out of 5" — self-contradictory, and read aloud verbatim.
+  const { getByText } = renderItem(7);
+  expect(getByText("5 out of 5")).toBeInTheDocument();
+});
+
+it("announces a rating even when the value is missing", () => {
+  // Previously rendered " out of 5", giving the element an empty accessible
+  // name that screen readers skip or announce as blank.
+  const { getByText } = renderItem(undefined);
+  expect(getByText("0 out of 5")).toBeInTheDocument();
+});
