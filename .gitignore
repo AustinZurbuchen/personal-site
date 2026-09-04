@@ -25,3 +25,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .env.local
+
+# Local dev stub: a copy of GET /api/getResume so `npm start` renders real
+# content without a backend. Never commit it.
+public/getResume
