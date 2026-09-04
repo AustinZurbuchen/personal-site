@@ -45,6 +45,14 @@ const enableAdminUi = () => {
 // A live session already in storage, as after a reload. The editMode slice
 // seeds `signedIn` from this when the store is CREATED, so it has to be written
 // before any render helper runs.
+// The sign-in panel is collapsed by default so the admin vhost looks like the
+// public site. Every test that reaches the form has to open it first, exactly
+// as a person would.
+const openAdminPanel = (utils) => {
+  fireEvent.click(utils.getByText("Admin"));
+  return utils;
+};
+
 const seedStoredSession = () => {
   window.sessionStorage.setItem(
     STORAGE_KEY,
@@ -123,9 +131,16 @@ describe("edit flow: the public render gains nothing", () => {
 describe("edit flow: signing in", () => {
   it("shows the sign-in form, and no Edit control, before a token exists", async () => {
     enableAdminUi();
-    const { container, getByLabelText, queryByText } = await renderLoadedApp();
+    const {
+      container, getByText, getByLabelText, queryByLabelText, queryByText,
+    } = await renderLoadedApp();
 
     expect(container.querySelector(".adminbar")).not.toBeNull();
+    // Collapsed by default: the trigger is the only admin chrome on screen, so
+    // the admin vhost reads as the site rather than as a tool.
+    expect(queryByLabelText("Username")).toBeNull();
+
+    fireEvent.click(getByText("Admin"));
     expect(getByLabelText("Username")).toBeInTheDocument();
     expect(getByLabelText("Password")).toBeInTheDocument();
     expect(queryByText("Edit")).toBeNull();
@@ -138,6 +153,7 @@ describe("edit flow: signing in", () => {
     });
     const { getByLabelText, getByText } = await renderLoadedApp();
 
+    fireEvent.click(getByText("Admin"));
     fireEvent.change(getByLabelText("Username"), { target: { value: "ada" } });
     fireEvent.change(getByLabelText("Password"), { target: { value: "hunter2" } });
     fireEvent.click(getByText("Sign in"));
@@ -169,6 +185,7 @@ describe("edit flow: signing in", () => {
     const { getByLabelText, getByText, queryByText, container } =
       await renderLoadedApp();
 
+    fireEvent.click(getByText("Admin"));
     fireEvent.change(getByLabelText("Username"), { target: { value: "ada" } });
     fireEvent.change(getByLabelText("Password"), { target: { value: "wrong" } });
     fireEvent.click(getByText("Sign in"));
@@ -191,6 +208,7 @@ describe("edit flow: signing in", () => {
     axios.post.mockRejectedValue(httpError(503, { code: "not_configured" }));
     const { getByLabelText, getByText, container } = await renderLoadedApp();
 
+    fireEvent.click(getByText("Admin"));
     fireEvent.change(getByLabelText("Username"), { target: { value: "ada" } });
     fireEvent.change(getByLabelText("Password"), { target: { value: "hunter2" } });
     fireEvent.click(getByText("Sign in"));
@@ -212,6 +230,8 @@ describe("edit flow: signing in", () => {
     // covered too: a live session comes back to the editor, not to the form.
     expect(getByText("Edit")).toBeInTheDocument();
 
+    // Signed in, so the trigger reads "Editing" and Sign out is in the panel.
+    fireEvent.click(getByText("Editing"));
     fireEvent.click(getByText("Sign out"));
 
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
@@ -468,6 +488,7 @@ describe("edit flow: when a save fails", () => {
 
     // Signed out of both copies...
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+    fireEvent.click(getByText("Admin"));
     expect(getByLabelText("Username")).toBeInTheDocument();
     // ...but the session expired, and the paragraph being typed did not. The
     // editor is gated on the open section, not on being signed in, precisely so

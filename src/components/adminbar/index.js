@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Editcontrol from "../editcontrol/index";
 import { sessionStarted, sessionEnded, selectSignedIn } from "../../reducers/editMode";
@@ -6,9 +6,14 @@ import { signIn, signOut } from "../../utils/adminApi";
 import { isAdminUi } from "../../utils/env";
 import "./index.scss";
 
-// The admin chrome: sign in, sign out, and the only visible cue telling you
-// which vhost you are on. Both vhosts serve identical files, so without this
-// the admin page and the public page are indistinguishable on screen.
+// The admin chrome: a small trigger in the top right that drops down a sign-in
+// panel. COLLAPSED BY DEFAULT, and that is the point — the admin vhost should
+// look like the site anyone else sees until you ask it not to. Before this the
+// panel was always open, so the two vhosts were obviously different pages.
+//
+// The trigger itself is unavoidable: both vhosts serve identical files, so
+// something has to be reachable or there is no way in. It is kept as quiet as
+// it can be while staying findable and operable.
 //
 // Rendered from App.js rather than from Site, deliberately:
 //   * it is available while GET /getResume is failing, so a dead API does not
@@ -16,12 +21,10 @@ import "./index.scss";
 //   * src/components/site/index.js is therefore not modified at all by this
 //     feature, which is the strongest possible guarantee for the 57 structural
 //     assertions in src/components/site/index.test.js.
-//
-// It reads Redux, so it is a "section" component by the convention in
-// CLAUDE.md even though it is chrome rather than a band.
 function Adminbar() {
   const signedIn = useSelector(selectSignedIn);
   const dispatch = useDispatch();
+  const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,17 +35,46 @@ function Adminbar() {
   // inserted node is announced.
   const [failure, setFailure] = useState(null);
 
+  const triggerRef = useRef(null);
+  const firstFieldRef = useRef(null);
+
+  // Focus the first thing worth typing into when the panel opens, and hand
+  // focus back to the trigger when it closes — otherwise closing the panel
+  // drops focus to <body> and a keyboard user restarts from the top of a
+  // ~450vh document.
+  useEffect(() => {
+    if (!open) return;
+    const node = firstFieldRef.current;
+    if (node) node.focus();
+  }, [open, signedIn]);
+
+  // Escape closes it, from anywhere inside. Bound on the panel rather than the
+  // document so it cannot swallow an Escape meant for something else.
+  const onKeyDown = (event) => {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      close();
+    }
+  };
+
+  const close = () => {
+    setOpen(false);
+    setFailure(null);
+    const node = triggerRef.current;
+    if (node) node.focus();
+  };
+
   // Every hook above this line, on purpose. Returning null here is one of the
   // two mechanisms that keep the public DOM byte-identical: with no
   // window.__ENV__.REACT_APP_ADMIN -- the public vhost, and every existing
   // test -- this component contributes no element, no landmark, no id and no
   // button.
   //
-  // isAdminUi() is COSMETIC. It decides whether this form is painted and
-  // nothing else. Anyone can set the flag from a console on the public site and
-  // summon it; they still cannot get a token without an admin password, and the
-  // public vhost's `limit_except GET HEAD { deny all; }` refuses the write at
-  // the edge with a 403 before Flask ever sees it. See src/utils/env.js.
+  // isAdminUi() is COSMETIC. It decides whether this is painted and nothing
+  // else. Anyone can set the flag from a console on the public site and summon
+  // it; they still cannot get a token without an admin password, and the public
+  // vhost's `limit_except GET HEAD { deny all; }` refuses the write at the edge
+  // with a 403 before Flask ever sees it. See src/utils/env.js.
   if (!isAdminUi()) {
     return null;
   }
@@ -69,6 +101,7 @@ function Adminbar() {
         setUsername("");
         setPassword("");
         setBusy(false);
+        setOpen(false);
         dispatch(sessionStarted());
       })
       .catch((error) => {
@@ -88,75 +121,96 @@ function Adminbar() {
     signOut();
     dispatch(sessionEnded());
     setFailure(null);
+    setOpen(false);
   };
 
   return (
-    <div className="adminbar">
-      <div className="adminbarinner">
-        {signedIn ? (
-          <>
-            <p className="adminbarstatus">
-              Admin session active — edit controls are on.
-            </p>
-            <Editcontrol
-              label="Sign out"
-              dark
-              onClick={onSignOut}
-            ></Editcontrol>
-          </>
-        ) : (
-          <form className="adminbarform" onSubmit={onSubmit}>
-            <p className="adminbarstatus">Admin view — sign in to edit.</p>
-            {/* Real labels, visually hidden. The placeholders are a hint, not a
-                name: a placeholder disappears on the first keystroke and is not
-                exposed as an accessible name by every combination. */}
-            <label className="visually-hidden" htmlFor="adminUsername">
-              Username
-            </label>
-            <input
-              className="adminbarinput"
-              id="adminUsername"
-              name="username"
-              type="text"
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck="false"
-              placeholder="Username"
-              value={username}
-              // readOnly, not disabled: disabling the field the user just
-              // pressed Enter in drops focus to <body>, so a screen-reader user
-              // is silently teleported to the top of the document mid-request.
-              readOnly={busy}
-              onChange={(event) => setUsername(event.target.value)}
-            />
-            <label className="visually-hidden" htmlFor="adminPassword">
-              Password
-            </label>
-            <input
-              className="adminbarinput"
-              id="adminPassword"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Password"
-              value={password}
-              readOnly={busy}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-            {/* A real <form> with a submit button, so Enter submits from either
-                field and password managers see a username/password pair. */}
-            <button className="editcontrol editcontroldark" type="submit" aria-disabled={busy ? "true" : undefined}>
-              {busy ? "Signing in" : "Sign in"}
-            </button>
-          </form>
-        )}
-      </div>
+    <div className={"adminbar" + (signedIn ? " adminbarlive" : "")}>
+      <button
+        className="admintrigger"
+        type="button"
+        ref={triggerRef}
+        aria-expanded={open ? "true" : "false"}
+        aria-controls="adminpanel"
+        onClick={() => (open ? close() : setOpen(true))}
+      >
+        {/* The word carries the state, so it is not colour alone. */}
+        {signedIn ? "Editing" : "Admin"}
+        <span className="admintriggermark" aria-hidden="true">
+          {open ? "▴" : "▾"}
+        </span>
+      </button>
 
-      {failure && (
-        <p className="adminbarmessage" role="alert" key={failure.attempt}>
-          {failure.text}
-        </p>
+      {open && (
+        <div className="adminpanel" id="adminpanel" onKeyDown={onKeyDown}>
+          {signedIn ? (
+            <>
+              <p className="adminbarstatus">
+                Signed in. Edit controls are on each section.
+              </p>
+              <Editcontrol label="Sign out" dark onClick={onSignOut}></Editcontrol>
+            </>
+          ) : (
+            <form className="adminbarform" onSubmit={onSubmit}>
+              <p className="adminbarstatus">Sign in to edit this page.</p>
+              {/* Real labels, visually hidden. The placeholders are a hint, not
+                  a name: a placeholder disappears on the first keystroke and is
+                  not exposed as an accessible name by every combination. */}
+              <label className="visually-hidden" htmlFor="adminUsername">
+                Username
+              </label>
+              <input
+                className="adminbarinput"
+                id="adminUsername"
+                name="username"
+                type="text"
+                ref={firstFieldRef}
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                placeholder="Username"
+                value={username}
+                // readOnly, not disabled: disabling the field the user just
+                // pressed Enter in drops focus to <body>, so a screen-reader
+                // user is silently teleported to the top of the document
+                // mid-request.
+                readOnly={busy}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+              <label className="visually-hidden" htmlFor="adminPassword">
+                Password
+              </label>
+              <input
+                className="adminbarinput"
+                id="adminPassword"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Password"
+                value={password}
+                readOnly={busy}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              {/* A real <form> with a submit button, so Enter submits from
+                  either field and password managers see a username/password
+                  pair. */}
+              <button
+                className="editcontrol editcontroldark"
+                type="submit"
+                aria-disabled={busy ? "true" : undefined}
+              >
+                {busy ? "Signing in" : "Sign in"}
+              </button>
+            </form>
+          )}
+
+          {failure && (
+            <p className="adminbarmessage" role="alert" key={failure.attempt}>
+              {failure.text}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
