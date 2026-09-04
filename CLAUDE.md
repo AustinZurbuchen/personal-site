@@ -63,11 +63,23 @@ functions returning arrays of JSX with `key={i.toString()}`.
 `App.js` fetches `${serverUrl}/getResume` once on mount and dispatches
 `update(...)`. Everything else reads `useSelector((state) => state.resume.value)`.
 
-`src/reducers/resume.js` deep-merges the API payload over an `emptyResume`
-skeleton, so `resume.profile`, `resume.abilities.languages`, etc. are always
-defined. Do not reintroduce optional chaining guards that assume they may be
-missing — but do keep the merge intact when adding new resume fields: **a new
-field must be added to `emptyResume` or it will be dropped.**
+`src/reducers/resume.js` merges the API payload over an `emptyResume` skeleton,
+so `resume.profile`, `resume.abilities.languages`, `resume.quotes[2]` etc. are
+always defined. Do not reintroduce optional chaining guards that assume they
+may be missing.
+
+The merge spreads the payload, so **unknown fields DO pass through** —
+`profile.age` and `profile.location` are rendered by `details/index.js` and
+appear nowhere in `emptyResume`. Adding a field to `emptyResume` is only
+required when a component will dereference it **unguarded** before the fetch
+resolves; otherwise it is optional. (An earlier version of this file claimed
+unknown fields were dropped. They are not — `src/reducers/resume.test.js` pins
+the actual behaviour.)
+
+`quotes` is the exception and is backfilled to three slots, because
+`experiences`, `abilities` and `footer` each read a fixed index
+(`quotes[0]`/`[1]`/`[2]`) with no guard. A shorter array from the database used
+to take the whole page down.
 
 `editMode` slice exists and is wired to a Button in `name/index.js`, but that
 button carries `.hidden` and the edit flow is unfinished. Treat it as WIP.
@@ -174,12 +186,34 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
   `<meta name="description">`, and `App.test.js` (which asserts "learn react"
   and fails).
 
+## Tests
+
+`npm test` runs 40 cases across 5 suites. They cover the two places this app
+can regress silently: the `resume` reducer's merge, and the accessibility
+structure of the page (landmarks, one `h1`, heading nesting, list semantics,
+the star rating's text alternative) — a property that spans nine component
+files and that no single component test can protect.
+
+`package.json` maps `^axios$` to `axios/dist/node/axios.cjs`; axios 1.x is ESM
+and CRA's Jest does not transform `node_modules`, so without the mapping the
+suite fails to parse before running a single test.
+
+Deliberately NOT tested, because jsdom loads no CSS and does no layout:
+breakpoints, contrast ratios, focus rings, and `.visually-hidden` vs `.hidden`.
+An assertion there would pass vacuously and license CSS changes nobody checked.
+Verify those in a browser.
+
+Note `@testing-library/react` 9.5 resolves a nested dom-testing-library 6.16,
+which **silently ignores** the `level` option on `getAllByRole('heading', ...)`
+— so the canonical single-`h1` assertion passes regardless of the markup. The
+suite uses `querySelectorAll` where that matters.
+
 ## Commands
 
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # currently failing on boilerplate App.test.js
+npm test      # 40 tests, 5 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

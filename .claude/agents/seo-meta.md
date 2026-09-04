@@ -12,7 +12,64 @@ For a personal resume site this is unusually high leverage: the most common
 way someone encounters it is a shared link or a search for the name, and both
 currently render as unbranded CRA boilerplate.
 
-## What is wrong now
+## Current state — the pass has landed
+
+`public/index.html` carries a full metadata block: title, description,
+canonical, Open Graph (including `og:image` at 1200x630 with dimensions and
+alt), Twitter `summary_large_image`, and a JSON-LD `@graph` with `Person` +
+`ProfilePage`. `manifest.json`, `robots.txt` and `sitemap.xml` are real.
+`public/og-image.png` is a typographic card in the design system.
+
+**Deliberate omissions — do not "complete" these:**
+
+- **No `worksFor`, `Organization`, or `hasOccupation`.** Every work entry has
+  `isCurrent: false` and the most recent role ended May 2026, so there is no
+  current employer. `worksFor` is an undated present-tense edge with no
+  `endDate` slot; any value publishes a false claim. An `OrganizationRole`
+  wrapper is not a safe substitute — naive parsers read the nested `worksFor`
+  as current.
+- **No `Person.image`.** No photograph of this person exists in the repo.
+  `og-image.png` is a typographic wordmark, and `Person.image` is read as a
+  depiction — pointing at it risks surfacing a text card as his face.
+- **No `birthDate`.** The API carries `age: "30 years"`; a year is easy to
+  back-compute and would be fabricated precision about a real identity.
+- **No `addressCountry`.** The verified location is exactly "Folsom,
+  California". "US" is an inference, and near-certain inferences are how
+  invented detail enters structured data.
+- **No `twitter:site` / `twitter:creator`.** No X handle exists in the resume
+  data. The obvious guess (mirroring the GitHub username) could attribute a
+  stranger's account to a real person. A commented stub is in place.
+
+## Two things that still need doing
+
+- **Favicons are still the stock CRA React logo** — `favicon.ico`,
+  `logo192.png`, `logo512.png`, and the apple-touch-icon. iMessage uses the
+  apple-touch-icon even when `og:image` is present, so a link to a recruiter
+  arrives beside the React atom. The correct iOS size is a 180x180 **opaque**
+  PNG (iOS composites transparency to black). Update the tags in the same
+  commit as the artwork, never before.
+- **No redirect to the canonical host.** All four scheme/host variants serve
+  identical 200s. The fix is a 301 at Nginx Proxy Manager, which is not in this
+  repo; `rel=canonical` is the repo-side mitigation.
+
+## Traps specific to this site
+
+- **`try_files $uri /index.html` makes every missing file a 200 `text/html`.**
+  A referenced-but-absent asset fails silently and still looks correct in curl.
+  Verify assets by content type: `curl -sI .../og-image.png | grep -i
+  content-type` must return `image/png`.
+- **CRA minifies `index.html`.** `html-minifier-terser` has historically
+  mangled `application/ld+json`. After any change, confirm the block survives:
+  parse it out of `build/index.html` and `json.loads` it.
+- **A new image needs a new filename.** All three platforms cache the card by
+  image URL, and a query string does not bust it — several scrapers strip it.
+- **`/login` inherits every tag**, since both routes are the same HTML file.
+  There is no static fix; runtime tags land after hydration where no scraper
+  looks.
+- **Never `Disallow: /api/` in robots.txt.** It would stop Googlebot's renderer
+  fetching `/api/getResume`, which produces every word on the page.
+
+## Historical — what the first pass fixed
 
 In `public/index.html`:
 - `<meta name="description" content="Web site created using create-react-app">`

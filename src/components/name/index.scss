@@ -6,8 +6,16 @@
     // rather than the whole ~450vh page, where background-size:cover resolved
     // against the full document on iOS and blew the image up. The aqua wash is
     // the first background layer so it still sits over the photo.
+    // First declaration is the fallback: browsers without image-set() (or
+    // without its type() argument) stop here and take the JPEG. Browsers that
+    // understand image-set() override it below and never fetch the JPEG.
     background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
-      url("../../CatWallpaper.png");
+      url("../../CatWallpaper.jpg");
+    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+      image-set(
+        url("../../CatWallpaper.avif") type("image/avif"),
+        url("../../CatWallpaper.webp") type("image/webp")
+      );
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
@@ -67,6 +75,13 @@
   .nameContainer {
     padding-left: 20px;
     padding-right: 20px;
+
+    // 960px source: a phone renders at most a ~375px-wide slice, so the full
+    // 1920px image is ~190KB of detail that is never resolved.
+    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+      url("../../CatWallpaper-960.jpg");
+    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+      image-set(url("../../CatWallpaper-960.webp") type("image/webp"));
   }
 
   .name {
