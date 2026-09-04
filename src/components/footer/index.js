@@ -9,22 +9,27 @@ function Footer() {
   let links = resume.links;
 
   return (
-    <div className="footer">
+    <footer className="footer">
       <div className="container">
-        <Titles title="Contact" subtitle={quote.quote} by={quote.by}></Titles>
-        <div className="links">
-          <div className="link email">{links.email}</div>
-          <div className="link linkedin">
-            {" "}
+        <Titles
+          id="contact-title"
+          title="Contact"
+          subtitle={quote.quote}
+          by={quote.by}
+        ></Titles>
+        <ul className="links">
+          <li className="link email">
+            <a href={`mailto:${links.email}`}>{links.email}</a>
+          </li>
+          <li className="link linkedin">
             <a href={links.linkedin}>Linkedin</a>
-          </div>
-          <div className="link github">
-            {" "}
+          </li>
+          <li className="link github">
             <a href={links.github}>Github</a>
-          </div>
-        </div>
+          </li>
+        </ul>
       </div>
-    </div>
+    </footer>
   );
 }
 export default Footer;

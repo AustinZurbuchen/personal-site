@@ -4,22 +4,34 @@
   justify-content: center;
   align-items: center;
   background-color: #fff6db;
-  height: 100vh;
-}
-
-.container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-right: auto;
-  margin-left: auto;
-  padding: 40px 180px;
-  max-width: 810px;
+  min-height: 100vh;
 }
 
 .info {
   width: 100%;
   display: flex;
   border-top: 1px solid #727878;
+}
+
+// The three columns (About Me / Photo / Details) never stacked. .profile .info
+// is used rather than a bare .info because experiences/ declares .info too, and
+// the JSX supplies direction via the global .row helper.
+@media (max-width: 768px) {
+  .profile .info {
+    flex-direction: column;
+  }
+
+  .profile .aboutme,
+  .profile .details {
+    width: 100%;
+  }
+
+  .profile .aboutme {
+    border-top: 0;
+  }
+
+  // An empty spacer on desktop; stacked it becomes a stray 1px rule.
+  .profile .photo {
+    display: none;
+  }
 }

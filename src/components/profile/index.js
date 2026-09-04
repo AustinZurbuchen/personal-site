@@ -10,9 +10,10 @@ function Profile() {
   const resume = useSelector((state) => state.resume.value);
   
   return (
-    <div className="profile">
+    <section className="profile" aria-labelledby="profile-title">
       <div className="container">
         <Titles
+          id="profile-title"
           title="Profile"
           subtitle={resume.profile.subtitle}
         ></Titles>
@@ -22,7 +23,7 @@ function Profile() {
           <Details title="Details" body={resume.profile}></Details>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 export default Profile;

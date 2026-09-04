@@ -14,9 +14,14 @@ function Abilities() {
   let quote = resume.quotes[1];
 
   return (
-    <div className="abilities">
+    <section className="abilities" aria-labelledby="abilities-title">
       <div className="container">
-        <Titles title="Abilities" subtitle={quote.quote} by={quote.by}></Titles>
+        <Titles
+          id="abilities-title"
+          title="Abilities"
+          subtitle={quote.quote}
+          by={quote.by}
+        ></Titles>
         <div className="list column">
           <div className="languages">
             <Itemslist title="Languages" items={languages}></Itemslist>
@@ -26,7 +31,7 @@ function Abilities() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 export default Abilities;

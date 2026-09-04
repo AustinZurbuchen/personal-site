@@ -16,6 +16,9 @@
   font-family: "Courier New", Courier, monospace;
   color: #22a39f;
   margin-top: 40px;
+  // Resets so this class can sit on an <h2>/<h3> without UA heading styles.
+  font-weight: normal;
+  margin-bottom: 0;
 }
 
 .subtitle {
@@ -25,10 +28,38 @@
   line-height: 40px;
   font-size: 18px;
   font-family: "Courier New", Courier, monospace;
-  color: #727878;
+  color: #434242;
   margin-bottom: 30px;
 }
 
 .by {
   margin-top: -40px;
+}
+
+// .titles is width:100% plus 40px side margins, so its margin box is 80px wider
+// than its container at every width. Harmless inside the 180px gutter; real
+// overflow once that gutter drops to 24px, so this must land with the 1024px
+// container change.
+@media (max-width: 1024px) {
+  .titles {
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+// Fixed line-heights (80px under a 50px title) become large gaps once the text
+// wraps, so they become ratios here.
+@media (max-width: 768px) {
+  .title {
+    font-size: 32px;
+    line-height: 1.25;
+    min-height: 0;
+    margin-top: 24px;
+  }
+
+  .subtitle {
+    line-height: 1.5;
+    min-height: 0;
+  }
 }

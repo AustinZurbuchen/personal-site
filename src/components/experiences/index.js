@@ -14,9 +14,10 @@ function Experiences() {
   let quote = resume.quotes[0];
 
   return (
-    <div className="experiences">
+    <section className="experiences" aria-labelledby="experiences-title">
       <div className="container">
         <Titles
+          id="experiences-title"
           title="Experiences"
           subtitle={quote.quote}
           by={quote.by}
@@ -30,7 +31,7 @@ function Experiences() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 export default Experiences;

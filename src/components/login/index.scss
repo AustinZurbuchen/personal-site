@@ -1,5 +1,7 @@
 .loginContainer {
   display: flex;
+  width: 100%;
+  margin: 0;
   flex-direction: column;
   align-items: center;
   background: rgb(37, 37, 37);
@@ -10,6 +12,9 @@
 
 .loginTitle {
   color: white;
+  font-size: 32px;
+  font-weight: bold;
+  margin: 0 0 16px;
 }
 
 .usernameContainer {
@@ -33,4 +38,25 @@
 
 .createContainer {
   margin: 10px;
+}
+
+// The three containers were width:15%, which is 56px on a 375px phone —
+// narrower than MUI's floating labels, and under the Button's own min-width.
+@media (max-width: 768px) {
+  .loginContainer {
+    padding-left: 24px;
+    padding-right: 24px;
+    box-sizing: border-box;
+  }
+
+  .usernameContainer,
+  .passwordContainer,
+  .submitContainer {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .submitContainer .submit {
+    min-height: 44px;
+  }
 }

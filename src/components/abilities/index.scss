@@ -7,17 +7,6 @@
   min-height: 100vh;
 }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-right: auto;
-  margin-left: auto;
-  padding: 40px 180px;
-  max-width: 810px;
-}
-
 .list {
   width: 100%;
   display: flex;
@@ -39,5 +28,24 @@
     justify-content: right;
     margin-left: 20px;
     border-top: 0px;
+  }
+}
+
+// .abilities .list beats the global .row/.column helpers on specificity. The
+// JSX says `list column` but .list declares row and wins on source order, so
+// this is the only place the stack can be expressed reliably.
+@media (max-width: 768px) {
+  .abilities .list {
+    flex-direction: column;
+  }
+
+  .abilities .list .languages,
+  .abilities .list .technologies {
+    width: 100%;
+  }
+
+  .abilities .list .technologies {
+    margin-left: 0;
+    border-top: 1px solid #727878;
   }
 }

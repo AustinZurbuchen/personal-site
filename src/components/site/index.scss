@@ -1,7 +1,7 @@
+// The wallpaper now lives on .nameContainer (the only band that showed it).
+// Applied here it stretched across the whole stacked page, where
+// background-size:cover resolved against ~450vh instead of the viewport.
 .background {
-  background: url("../../CatWallpaper.png") no-repeat center;
-  background-attachment: fixed;
-  background-size: cover;
   height: auto;
   width: auto;
 }

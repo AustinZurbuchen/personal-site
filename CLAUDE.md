@@ -126,8 +126,38 @@ contains a `.container` (`max-width: 810px`, `padding: 40px 180px`). Sections
 are separated by a `1px solid #727878` top border, not by margin.
 
 **Global helpers** in `src/index.scss`: `.row` `.column` `.bold` `.biggertext`
-`.smalltitle` `.collapsedtext` `.spreadtext`. Prefer these over redeclaring
-flex direction or font weight in a component.
+`.smalltitle` `.collapsedtext` `.spreadtext` `.hidden` `.visually-hidden`.
+Prefer these over redeclaring flex direction or font weight in a component.
+`.hidden` is `display:none` (gone from the accessibility tree too);
+`.visually-hidden` is for text that should reach a screen reader but not be
+painted. They are not interchangeable.
+
+**Breakpoints** — exactly two, both in `src/index.scss` and the component files:
+`max-width: 1024px` (gutter drops 180px -> 24px, restoring the approved 810px
+content box that was silently squeezing below 1170px) and `max-width: 768px`
+(multi-column rows stack, type scale steps down). The 768px scale is sized to
+hold down to 320px, so do not add a third breakpoint without a reason.
+
+## Known accessibility exceptions
+
+Two contrast failures are accepted deliberately, because no value in the
+palette fixes them and the alternatives would change the site's identity.
+Do not "fix" these by inventing a color; raise them as design decisions.
+
+- **Hero text.** White on `rgba(0,255,255,0.5)` over `CatWallpaper.png`. The
+  50% aqua wash puts a luminance floor under the composite, capping white text
+  at **4.80:1** no matter what is behind it, and roughly 28% of the text area
+  falls below even the 3:1 large-text bar. Every palette alternative is worse
+  than white (`#434242` medians 2.39:1). Fixing it means changing the wash, the
+  photograph, or accepting it.
+- **Teal headings on the cream bands.** `#22a39f` is **2.86:1** on `#fff6db`
+  and **2.68:1** on `#f3efe0`, against a 3:1 bar for large text. It passes on
+  white (3.08:1). The only palette values that clear it are `#434242`,
+  `#444242` and black, which would delete the teal heading identity.
+
+Everything else measured clears AA: footer text and links are `#dfe0e0` on
+`#444242` (7.55:1), `.subtitle` is `#434242` on the light bands (8.70–10.02:1),
+and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Known constraints
 

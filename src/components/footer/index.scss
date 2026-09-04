@@ -10,31 +10,71 @@
     flex-direction: row;
     justify-content: center;
     text-align: center;
-    padding-top: 20px;
+    // #727878 on #444242 was 2.22:1 — the worst text on the site. #dfe0e0
+    // is an existing palette token and gives 7.55:1.
+    padding: 20px 0 0;
+    margin: 0;
+    list-style: none;
     width: 100%;
-    color: #727878;
-    border-top: 1px solid #727878;
+    color: #dfe0e0;
+    border-top: 1px solid #dfe0e0;
 
     .link {
       margin-left: 20px;
       margin-right: 20px;
     }
 
+    // Underlined so link identity does not depend on color alone — the links
+    // were previously the same #727878 as the text around them.
     a {
-      text-decoration: none;
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
-    a:link {
-      color: #727878;
-    }
-    a:active {
-      color: #727878;
-    }
-    a:visited {
-      color: #727878;
-    }
+    a:link,
+    a:active,
+    a:visited,
     a:hover {
-      color: #727878;
+      color: #dfe0e0;
     }
+  }
+}
+
+// The global :focus-visible ring is #434242, which is invisible on this band.
+.footer :focus-visible {
+  outline-color: #dfe0e0;
+}
+
+// The quote subtitle is the same global rule used on the light bands, where it
+// is now #434242 — that would be 1.00:1 here.
+.footer .subtitle {
+  color: #dfe0e0;
+}
+
+// Three links in a nowrap row inside the old 180px gutter overflowed a phone by
+// ~400px, and the bare anchors were ~19px tall against the 44px tap minimum.
+@media (max-width: 768px) {
+  .footer .links {
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    row-gap: 4px;
+  }
+
+  .footer .links .link {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .footer .links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+
+  .footer .links .email {
+    overflow-wrap: anywhere;
   }
 }

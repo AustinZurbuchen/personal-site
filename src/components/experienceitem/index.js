@@ -3,16 +3,16 @@ import "./index.scss";
 
 const Experienceitem = ({ company, dateLabel, title, body }) => {
   return (
-    <div className="experienceitem row">
+    <li className="experienceitem row">
       <div className="namedate column">
-        <div className="institution bold biggertext">{company}</div>
+        <h4 className="institution bold biggertext">{company}</h4>
         <div className="date">{dateLabel}</div>
       </div>
       <div className="titlebody column">
-        <div className="experiencetitle bold biggertext">{title}</div>
-        <div className="body">{body}</div>
+        <p className="experiencetitle bold biggertext">{title}</p>
+        <p className="body">{body}</p>
       </div>
-    </div>
+    </li>
   );
 };
 export default Experienceitem;

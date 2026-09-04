@@ -13,8 +13,25 @@ open resumes on phones.
 
 ## Current state
 
-**The site has zero media queries.** Confirm with `grep -rn "@media" src/` —
-it returns nothing. The consequences:
+The responsive and accessibility pass has landed. Two breakpoints exist —
+`max-width: 1024px` (gutter 180px -> 24px) and `max-width: 768px` (rows stack,
+type scale steps down), sized to hold to 320px. Landmarks, a single `h1` with
+an h2/h3/h4 hierarchy, list semantics, focus rings, 44px tap targets, mailto on
+the footer email, and text alternatives on the star ratings are all in place.
+
+**Two contrast failures are accepted exceptions**, documented in `CLAUDE.md`:
+hero white over the aqua wash (capped at 4.80:1 by the wash itself) and teal
+headings on the two cream bands (2.68–2.86:1 against a 3:1 bar). No palette
+value fixes either. Do not invent a color to close them — raise them as design
+decisions.
+
+Before adding a breakpoint, check whether the existing two can carry the change;
+a breakpoint zoo on a site this simple is itself a defect.
+
+## Historical — what the first pass fixed
+
+These were the original defects. Kept as a record of why the current rules
+exist, so they are not undone:
 
 - `.container` is `padding: 40px 180px` at `max-width: 810px`. On a 375px
   viewport that leaves ~15px of usable width.

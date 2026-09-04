@@ -4,9 +4,9 @@ import "./index.scss";
 const Aboutme = ({ title, body }) => {
   return (
     <div className="aboutme">
-      <div className="title" id="aboutmeTitle">
+      <h3 className="title" id="aboutmeTitle">
         {title}
-      </div>
+      </h3>
       <div className="body collapsedtext">{body}</div>
     </div>
   );

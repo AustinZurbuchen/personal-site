@@ -12,15 +12,16 @@ function Login() {
     },
   });
 
-  function submit() {
+  function submit(event) {
+    event.preventDefault();
     console.log("click");
   }
 
   return (
-    <div className="login">
+    <main className="login">
       <ThemeProvider theme={darkTheme}>
-        <div className="loginContainer">
-          <div className="loginTitle">Login</div>
+        <form className="loginContainer" onSubmit={submit}>
+          <h1 className="loginTitle">Login</h1>
           <div className="usernameContainer">
             <TextField
               required
@@ -28,6 +29,7 @@ function Login() {
               label="Username"
               variant="filled"
               color="primary"
+              autoComplete="username"
             />
           </div>
           <div className="passwordContainer">
@@ -38,6 +40,7 @@ function Login() {
               type="password"
               variant="filled"
               color="primary"
+              autoComplete="current-password"
             />
           </div>
           <div className="submitContainer">
@@ -45,7 +48,7 @@ function Login() {
               className="submit"
               variant="contained"
               color="primary"
-              onClick={submit}
+              type="submit"
             >
               Login
             </Button>
@@ -55,9 +58,9 @@ function Login() {
               Create Account
             </Link>
           </div>
-        </div>
+        </form>
       </ThemeProvider>
-    </div>
+    </main>
   );
 }
 export default Login;
