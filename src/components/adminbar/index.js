@@ -49,6 +49,16 @@ function Adminbar() {
     if (node) node.focus();
   }, [open, signedIn]);
 
+  // Closing empties the form. The panel always opens blank, so a half-typed
+  // username from ten minutes ago is never sitting there, and a password never
+  // lingers in a DOM node after you have dismissed the panel. Sign-in success
+  // clears these too, for the same reason.
+  const resetForm = () => {
+    setUsername("");
+    setPassword("");
+    setFailure(null);
+  };
+
   // A click anywhere outside the widget closes it. Bound on mousedown rather
   // than click: a click that STARTS inside the panel and ends outside — which
   // is what selecting text in a field and releasing past its edge does — would
@@ -65,7 +75,7 @@ function Adminbar() {
         // Not close(): that pulls focus back to the trigger, which would yank
         // it away from whatever the person just deliberately clicked on.
         setOpen(false);
-        setFailure(null);
+        resetForm();
       }
     };
 
@@ -85,7 +95,7 @@ function Adminbar() {
 
   const close = () => {
     setOpen(false);
-    setFailure(null);
+    resetForm();
     const node = triggerRef.current;
     if (node) node.focus();
   };
@@ -122,12 +132,9 @@ function Adminbar() {
     setFailure(null);
     signIn(trimmed, password)
       .then(() => {
-        // Cleared on success so neither value sits in a DOM node for the rest
-        // of the session.
-        setUsername("");
-        setPassword("");
         setBusy(false);
         setOpen(false);
+        resetForm();
         dispatch(sessionStarted());
       })
       .catch((error) => {

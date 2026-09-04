@@ -577,6 +577,62 @@ describe("edit flow: the admin panel opens and closes", () => {
     expect(getByText("Admin").getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("opens empty every time, however it was closed", async () => {
+    // Three ways to close, and none of them may leave a half-typed credential
+    // sitting in the DOM for the next time the panel opens.
+    enableAdminUi();
+    const { container, getByText, getByLabelText } = await renderLoadedApp();
+
+    const type = () => {
+      fireEvent.change(getByLabelText("Username"), { target: { value: "ada" } });
+      fireEvent.change(getByLabelText("Password"), { target: { value: "hunter2" } });
+    };
+    const reopen = () => {
+      fireEvent.click(getByText("Admin"));
+      return {
+        user: getByLabelText("Username").value,
+        pass: getByLabelText("Password").value,
+      };
+    };
+
+    // 1. the trigger
+    fireEvent.click(getByText("Admin"));
+    type();
+    fireEvent.click(getByText("Admin"));
+    expect(reopen()).toEqual({ user: "", pass: "" });
+
+    // 2. a click outside
+    type();
+    fireEvent.mouseDown(container.querySelector("h1"));
+    expect(reopen()).toEqual({ user: "", pass: "" });
+
+    // 3. Escape
+    type();
+    fireEvent.keyDown(container.querySelector(".adminpanel"), { key: "Escape" });
+    expect(reopen()).toEqual({ user: "", pass: "" });
+  });
+
+  it("does not keep a failed attempt's error around either", async () => {
+    enableAdminUi();
+    axios.post.mockRejectedValue(
+      httpError(401, { code: "invalid_credentials", error: "Invalid username or password" })
+    );
+    const { container, getByText, getByLabelText } = await renderLoadedApp();
+
+    fireEvent.click(getByText("Admin"));
+    fireEvent.change(getByLabelText("Username"), { target: { value: "ada" } });
+    fireEvent.change(getByLabelText("Password"), { target: { value: "wrong" } });
+    fireEvent.click(getByText("Sign in"));
+
+    await wait(() => {
+      expect(container.querySelector(".adminbarmessage")).not.toBeNull();
+    });
+
+    fireEvent.click(getByText("Admin"));
+    fireEvent.click(getByText("Admin"));
+    expect(container.querySelector(".adminbarmessage")).toBeNull();
+  });
+
   it("reports its expanded state to assistive tech", async () => {
     enableAdminUi();
     const { getByText } = await renderLoadedApp();
