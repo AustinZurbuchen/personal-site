@@ -26,3 +26,17 @@
     }
   }
 }
+
+// .ability is width:80% with the flex default min-width:auto, so it refuses to
+// shrink below its longest ability name and pushes the star block off the edge.
+@media (max-width: 768px) {
+  .abilities .abilityitem .ability {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .abilities .abilityitem .starsContainer {
+    flex: 0 0 auto;
+  }
+}

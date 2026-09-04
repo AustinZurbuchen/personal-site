@@ -46,14 +46,16 @@ export function generateStars(stars) {
   for (let i = 0; i < 5; i++) {
     if (i < stars) {
       starelements.push(
-        <div key={i.toString()} style={{ color: "#46a4a0" }}>
+        <div key={i.toString()} aria-hidden="true" style={{ color: "#46a4a0" }}>
           &#9733;
         </div>
       );
     } else {
       starelements.push(
-        <div key={i.toString()} style={{ color: "#dfe0e0" }}>
-          &#9733;
+        // Outline glyph, not a filled one: filled-vs-empty is 2.24:1 on
+        // colour alone, so the state is carried by shape as well.
+        <div key={i.toString()} aria-hidden="true" style={{ color: "#dfe0e0" }}>
+          &#9734;
         </div>
       );
     }

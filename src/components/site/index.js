@@ -16,11 +16,16 @@ function Site() {
 
   return (
     <div className="Site">
+      <a className="skip-link visually-hidden" href="#main">
+        Skip to content
+      </a>
       <div className="background">
         <Name></Name>
-        <Profile></Profile>
-        <Experiences></Experiences>
-        <Abilities></Abilities>
+        <main id="main">
+          <Profile></Profile>
+          <Experiences></Experiences>
+          <Abilities></Abilities>
+        </main>
         <Footer></Footer>
       </div>
     </div>

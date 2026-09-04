@@ -11,20 +11,29 @@ function App() {
   const resume = useSelector((state) => state.resume.value);
   const [isBusy, setBusy] = useState(true);
   const dispatch = useDispatch();
+  const runtimeServerUrl =
+    typeof window.__ENV__?.REACT_APP_SERVER_URL === "string"
+      ? window.__ENV__.REACT_APP_SERVER_URL
+      : "";
+  const serverUrl =
+    runtimeServerUrl ||
+    (process.env.NODE_ENV === "development"
+      ? process.env.REACT_APP_SERVER_URL || ""
+      : "");
 
   useEffect(() => {
     axios
-      .get(`${process.env.REACT_APP_SERVER_URL}/getResume`)
+      .get(`${serverUrl}/getResume`)
       .then((response) => {
-        dispatch(update(response.data));
+        dispatch(update(response.data?.resume ?? response.data));
       })
       .catch((err) => {
         console.log(err);
       });
-  }, [dispatch]);
+  }, [dispatch, serverUrl]);
 
   useEffect(() => {
-    if (resume && isBusy) {
+    if (resume?.profile && isBusy) {
       setBusy(false);
     }
   }, [resume, isBusy]);
@@ -33,7 +42,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={resume && !isBusy && <Site />} exact />
+          <Route path="/" element={resume?.profile && !isBusy && <Site />} exact />
           <Route path="/login" element={<Login />} exact />
         </Routes>
       </BrowserRouter>

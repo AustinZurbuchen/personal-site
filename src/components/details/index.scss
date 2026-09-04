@@ -17,4 +17,14 @@
 .body {
   text-align: left;
   font-family: "Courier New", Courier, monospace;
+  color: #434242;
+}
+
+// Scoped — .body is also declared in aboutme/ and nested in experienceitem/.
+.details .body {
+  margin: 0;
+}
+
+.details dd {
+  margin-left: 0;
 }

@@ -4,8 +4,8 @@ import "./index.scss";
 const Itemslist = ({ title, items }) => {
   return (
     <div className="itemslist">
-      <div className="listtitle smalltitle">{title}</div>
-      <div className="listitems">{items}</div>
+      <h3 className="listtitle smalltitle">{title}</h3>
+      <ul className="listitems">{items}</ul>
     </div>
   );
 };

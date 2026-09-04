@@ -5,17 +5,17 @@ const Details = ({ title, body }) => {
   const { name, age, location } = body;
   return (
     <div className="details">
-      <div className="title" id="detailsTitle">
+      <h3 className="title" id="detailsTitle">
         {title}
-      </div>
-      <div className="body spreadtext">
-        <div className="bodyTitle bold">Name:</div>
-        <div className="bodyContent">{name}</div>
-        <div className="bodyTitle bold">Age:</div>
-        <div className="bodyContent">{age}</div>
-        <div className="bodyTitle bold">Location:</div>
-        <div className="bodyContent">{location}</div>
-      </div>
+      </h3>
+      <dl className="body spreadtext">
+        <dt className="bodyTitle bold">Name:</dt>
+        <dd className="bodyContent">{name}</dd>
+        <dt className="bodyTitle bold">Age:</dt>
+        <dd className="bodyContent">{age}</dd>
+        <dt className="bodyTitle bold">Location:</dt>
+        <dd className="bodyContent">{location}</dd>
+      </dl>
     </div>
   );
 };

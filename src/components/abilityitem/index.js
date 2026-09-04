@@ -5,12 +5,13 @@ import "./index.scss";
 const Abilityitem = ({ ability, stars }) => {
   let starsElement = generateStars(stars);
   return (
-    <div className="abilityitem row">
+    <li className="abilityitem row">
       <div className="ability">{ability}</div>
       <div className="starsContainer">
         <div className="stars">{starsElement}</div>
+        <span className="visually-hidden">{stars} out of 5</span>
       </div>
-    </div>
+    </li>
   );
 };
 export default Abilityitem;

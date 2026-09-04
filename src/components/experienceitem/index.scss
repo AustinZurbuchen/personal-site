@@ -38,3 +38,18 @@
     }
   }
 }
+
+@media (max-width: 768px) {
+  .experiences .experienceitem {
+    flex-direction: column;
+  }
+
+  .experiences .experienceitem .namedate,
+  .experiences .experienceitem .titlebody {
+    width: 100%;
+  }
+
+  .experiences .experienceitem .titlebody {
+    margin-top: 8px;
+  }
+}

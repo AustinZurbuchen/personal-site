@@ -17,4 +17,19 @@
 .body {
   text-align: left;
   font-family: "Courier New", Courier, monospace;
+  // Was inheriting UA black; #434242 is the design system's body token.
+  color: #434242;
+}
+
+// Both sub-heads are targeted by ID (1,0,0), so a rule written against the
+// .title class they also carry would silently lose. Grouped here rather than
+// duplicated into details/index.scss.
+@media (max-width: 768px) {
+  #aboutmeTitle,
+  #detailsTitle {
+    font-size: 22px;
+    line-height: 1.3;
+    min-height: 0;
+    margin-bottom: 12px;
+  }
 }
