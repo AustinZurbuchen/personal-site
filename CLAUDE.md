@@ -81,8 +81,14 @@ the actual behaviour.)
 (`quotes[0]`/`[1]`/`[2]`) with no guard. A shorter array from the database used
 to take the whole page down.
 
-`editMode` slice exists and is wired to a Button in `name/index.js`, but that
-button carries `.hidden` and the edit flow is unfinished. Treat it as WIP.
+`App.js` tracks an explicit `status` of `loading` / `ready` / `error` rather
+than inspecting the store. Do not reintroduce a gate like `resume?.profile` —
+`emptyResume.profile` is an object, so it is truthy on the first render and
+such a gate opens before any response arrives, painting the blank skeleton. On
+a failed fetch the `loaderror` band renders instead of the hollow resume.
+
+`editMode` slice exists but nothing renders its toggle; the edit flow is
+unfinished. Treat it as WIP.
 
 ## API URL resolution
 
@@ -188,7 +194,7 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 40 cases across 5 suites. They cover the two places this app
+`npm test` runs 57 cases across 5 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics,
 the star rating's text alternative) — a property that spans nine component

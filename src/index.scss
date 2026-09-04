@@ -86,6 +86,7 @@ code {
 // the URL bar. Guarded so non-supporting browsers keep today's exact values.
 @supports (height: 100dvh) {
   .nameContainer,
+  .loaderror,
   .profile,
   .experiences,
   .abilities,

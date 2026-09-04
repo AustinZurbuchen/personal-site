@@ -96,3 +96,41 @@ describe("App: the shape of the response it accepts", () => {
     });
   });
 });
+
+describe("App: what is on screen before and after the fetch", () => {
+  // Regression guard for the loading gate. `resume.profile` is truthy on the
+  // very first render because emptyResume.profile is an object, so a gate that
+  // checks the store instead of the request opens immediately and paints the
+  // blank skeleton — a resume with no name and no experience, which reads as
+  // fact rather than as a failure.
+  it("shows nothing until the request resolves", () => {
+    let resolve;
+    axios.get.mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { container } = renderApp();
+
+    expect(container.querySelector("h1")).toBeNull();
+    expect(container.querySelector("main")).toBeNull();
+    expect(resolve).toEqual(expect.any(Function)); // still pending
+  });
+
+  it("shows an error state, not a blank resume, when the API is down", async () => {
+    // The old empty catch left the hollow skeleton up permanently.
+    axios.get.mockRejectedValue(new Error("Network Error"));
+    const { container, getByRole } = renderApp();
+
+    await wait(() => {
+      expect(container.querySelector(".loaderror")).not.toBeNull();
+    });
+    expect(getByRole("heading").textContent).toMatch(/something went wrong/i);
+    expect(getByRole("button")).toBeInTheDocument();
+  });
+
+  it("does not leave the error state up once data arrives", async () => {
+    axios.get.mockResolvedValue({ data: resumeFixture() });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1").textContent).toContain("Ada Lovelace");
+    });
+    expect(container.querySelector(".loaderror")).toBeNull();
+  });
+});
