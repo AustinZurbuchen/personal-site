@@ -98,6 +98,12 @@
   padding: 8px 10px;
   min-height: 44px;
   width: 100%;
+  // The site has no global box-sizing, and deliberately so — border-box would
+  // collapse the approved 1170px band (810px content + 360px gutter) to 810px.
+  // So width:100% here is 100% of the panel's CONTENT box, and the 20px padding
+  // plus 2px border push the field 22px past the panel edge. Scoped to this
+  // element rather than fixed globally, for the same reason.
+  box-sizing: border-box;
 }
 
 .adminbarinput::placeholder {

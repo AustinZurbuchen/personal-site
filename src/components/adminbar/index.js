@@ -37,6 +37,7 @@ function Adminbar() {
 
   const triggerRef = useRef(null);
   const firstFieldRef = useRef(null);
+  const rootRef = useRef(null);
 
   // Focus the first thing worth typing into when the panel opens, and hand
   // focus back to the trigger when it closes — otherwise closing the panel
@@ -47,6 +48,31 @@ function Adminbar() {
     const node = firstFieldRef.current;
     if (node) node.focus();
   }, [open, signedIn]);
+
+  // A click anywhere outside the widget closes it. Bound on mousedown rather
+  // than click: a click that STARTS inside the panel and ends outside — which
+  // is what selecting text in a field and releasing past its edge does — would
+  // otherwise close the panel out from under the drag.
+  //
+  // Listening in the capture phase, so a handler that stops propagation
+  // somewhere below cannot strand the panel open.
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onDocumentMouseDown = (event) => {
+      const root = rootRef.current;
+      if (root && !root.contains(event.target)) {
+        // Not close(): that pulls focus back to the trigger, which would yank
+        // it away from whatever the person just deliberately clicked on.
+        setOpen(false);
+        setFailure(null);
+      }
+    };
+
+    document.addEventListener("mousedown", onDocumentMouseDown, true);
+    return () =>
+      document.removeEventListener("mousedown", onDocumentMouseDown, true);
+  }, [open]);
 
   // Escape closes it, from anywhere inside. Bound on the panel rather than the
   // document so it cannot swallow an Escape meant for something else.
@@ -125,7 +151,10 @@ function Adminbar() {
   };
 
   return (
-    <div className={"adminbar" + (signedIn ? " adminbarlive" : "")}>
+    <div
+      className={"adminbar" + (signedIn ? " adminbarlive" : "")}
+      ref={rootRef}
+    >
       <button
         className="admintrigger"
         type="button"

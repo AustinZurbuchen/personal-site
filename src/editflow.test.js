@@ -543,3 +543,49 @@ describe("edit flow: editing before the resume loads is impossible", () => {
     expect(getByText("Edit")).toBeInTheDocument();
   });
 });
+
+describe("edit flow: the admin panel opens and closes", () => {
+  // The panel's WIDTH is not asserted anywhere: jsdom does no layout, so a
+  // box-sizing regression (which is exactly what escaped last time) would pass
+  // vacuously here. That one is verified in a browser.
+  it("stays closed until asked, and closes again on a second click", async () => {
+    enableAdminUi();
+    const { getByText, queryByLabelText } = await renderLoadedApp();
+
+    expect(queryByLabelText("Username")).toBeNull();
+    fireEvent.click(getByText("Admin"));
+    expect(queryByLabelText("Username")).not.toBeNull();
+    fireEvent.click(getByText("Admin"));
+    expect(queryByLabelText("Username")).toBeNull();
+  });
+
+  it("closes when you click outside, and stays open when you click inside", async () => {
+    enableAdminUi();
+    const { container, getByText, getByLabelText, queryByLabelText } =
+      await renderLoadedApp();
+
+    fireEvent.click(getByText("Admin"));
+
+    // mousedown, not click: the handler listens for mousedown so that selecting
+    // text in a field and releasing past its edge does not close the panel out
+    // from under the drag.
+    fireEvent.mouseDown(getByLabelText("Username"));
+    expect(queryByLabelText("Username")).not.toBeNull();
+
+    fireEvent.mouseDown(container.querySelector("h1"));
+    expect(queryByLabelText("Username")).toBeNull();
+    expect(getByText("Admin").getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("reports its expanded state to assistive tech", async () => {
+    enableAdminUi();
+    const { getByText } = await renderLoadedApp();
+
+    const trigger = getByText("Admin");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(trigger.getAttribute("aria-controls")).toBe("adminpanel");
+
+    fireEvent.click(trigger);
+    expect(getByText("Admin").getAttribute("aria-expanded")).toBe("true");
+  });
+});
