@@ -122,7 +122,7 @@ Match them exactly rather than inventing new ones.
 
 | Role | Value |
 |---|---|
-| Heading teal | `#22a39f` |
+| Heading teal | `#1f9693` |
 | Filled star | `#46a4a0` |
 | Empty star | `#dfe0e0` |
 | Subtitles, 1px rules, footer links | `#727878` |
@@ -131,7 +131,7 @@ Match them exactly rather than inventing new ones.
 | Profile band | `#fff6db` |
 | Experiences band | `#f3efe0` |
 | Abilities band | `#ffffff` |
-| Hero wash over CatWallpaper | `rgba(0, 255, 255, 0.5)` |
+| Hero wash over CatWallpaper | `rgba(31, 150, 147, 0.62)` |
 
 **Type** — `"Courier New", Courier, monospace` for every heading and display
 string; the system sans stack in `index.scss` for body copy. Sizes in use:
@@ -156,22 +156,32 @@ content box that was silently squeezing below 1170px) and `max-width: 768px`
 (multi-column rows stack, type scale steps down). The 768px scale is sized to
 hold down to 320px, so do not add a third breakpoint without a reason.
 
-## Known accessibility exceptions
+## Contrast — why these two values are what they are
 
-Two contrast failures are accepted deliberately, because no value in the
-palette fixes them and the alternatives would change the site's identity.
-Do not "fix" these by inventing a color; raise them as design decisions.
+Both were measured against the real assets, not estimated. Neither is arbitrary
+and neither should be nudged for aesthetic reasons without re-measuring.
 
-- **Hero text.** White on `rgba(0,255,255,0.5)` over `CatWallpaper.png`. The
-  50% aqua wash puts a luminance floor under the composite, capping white text
-  at **4.80:1** no matter what is behind it, and roughly 28% of the text area
-  falls below even the 3:1 large-text bar. Every palette alternative is worse
-  than white (`#434242` medians 2.39:1). Fixing it means changing the wash, the
-  photograph, or accepting it.
-- **Teal headings on the cream bands.** `#22a39f` is **2.86:1** on `#fff6db`
-  and **2.68:1** on `#f3efe0`, against a 3:1 bar for large text. It passes on
-  white (3.08:1). The only palette values that clear it are `#434242`,
-  `#444242` and black, which would delete the teal heading identity.
+- **Heading teal `#1f9693`.** The shallowest teal along the original hue that
+  clears the 3:1 large-text bar on every band: **3.33:1** on `#fff6db`,
+  **3.12:1** on `#f3efe0`, **3.59:1** on white. The previous `#22a39f` was
+  2.86 / 2.68 / 3.08 — failing on both cream bands. Lightening it back toward
+  `#22a39f` reintroduces that failure; there is no headroom in this direction.
+- **Hero wash `rgba(31, 150, 147, 0.62)`.** White text over the wash on
+  `CatWallpaper` measures a **0.6%** failing area against the 3:1 large-text
+  bar, down from **19%** under the old `rgba(0,255,255,0.5)`. The wash's alpha
+  and darkness are doing that work: any wash sets a luminance floor under the
+  composite, and the old 50% aqua capped white text at 4.80:1 no matter what
+  was behind it. Lightening the wash or lowering the alpha undoes this.
+
+Still not strictly AA: 0.6% of the hero text area remains below 3:1, where the
+text crosses the brightest part of the nebula. A fully passing wash
+(`rgba(20,95,93,0.62)`, 0% failing) was measured and rejected as too dark for
+the photograph — an accepted, deliberate residue rather than an oversight.
+
+`og-image.png` and the icons still use `#22a39f`. Left deliberately: the
+difference is imperceptible at those sizes, and social platforms cache card
+images by URL, so changing one means a new filename and a cache flush across
+LinkedIn, Slack and X for no visible gain.
 
 Everything else measured clears AA: footer text and links are `#dfe0e0` on
 `#444242` (7.55:1), `.subtitle` is `#434242` on the light bands (8.70–10.02:1),

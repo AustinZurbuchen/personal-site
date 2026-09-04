@@ -1,6 +1,7 @@
 // Follows the band grammar: full-bleed, centred, its own background, wrapping
 // the shared .container. Uses #434242 rather than the heading teal because
-// #22a39f clears 3:1 only on white, and an error state should not depend on
+// the heading teal is tuned for the band colours it sits on, and an error
+// state should not depend on
 // which band colour it happens to sit on.
 .loaderror {
   display: flex;

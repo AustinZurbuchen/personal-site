@@ -9,9 +9,9 @@
     // First declaration is the fallback: browsers without image-set() (or
     // without its type() argument) stop here and take the JPEG. Browsers that
     // understand image-set() override it below and never fetch the JPEG.
-    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+    background-image: linear-gradient(rgba(31, 150, 147, 0.62), rgba(31, 150, 147, 0.62)),
       url("../../CatWallpaper.jpg");
-    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+    background-image: linear-gradient(rgba(31, 150, 147, 0.62), rgba(31, 150, 147, 0.62)),
       image-set(
         url("../../CatWallpaper.avif") type("image/avif"),
         url("../../CatWallpaper.webp") type("image/webp")
@@ -78,9 +78,9 @@
 
     // 960px source: a phone renders at most a ~375px-wide slice, so the full
     // 1920px image is ~190KB of detail that is never resolved.
-    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+    background-image: linear-gradient(rgba(31, 150, 147, 0.62), rgba(31, 150, 147, 0.62)),
       url("../../CatWallpaper-960.jpg");
-    background-image: linear-gradient(rgba(0, 255, 255, 0.5), rgba(0, 255, 255, 0.5)),
+    background-image: linear-gradient(rgba(31, 150, 147, 0.62), rgba(31, 150, 147, 0.62)),
       image-set(url("../../CatWallpaper-960.webp") type("image/webp"));
   }
 
