@@ -26,6 +26,18 @@ const emptyResume = {
     },
 };
 
+// Experiences reads quotes[0], Abilities quotes[1] and Footer quotes[2] with no
+// guard, on the strength of the emptyResume merge. An `Array.isArray` check
+// alone did not deliver that: a shorter array (one quote deleted by hand in
+// Mongo Atlas) passed straight through and took the whole page down with
+// "Cannot read properties of undefined (reading 'quote')". Backfill every slot
+// emptyResume declares, and keep any extras the payload supplies.
+const withQuoteSlots = (quotes) => {
+    const supplied = Array.isArray(quotes) ? quotes : [];
+    const filled = emptyResume.quotes.map((fallback, i) => supplied[i] || fallback);
+    return filled.concat(supplied.slice(emptyResume.quotes.length));
+};
+
 export const resumeSlice = createSlice({
     name: 'resume',
     initialState: {
@@ -40,7 +52,7 @@ export const resumeSlice = createSlice({
                 profile: { ...emptyResume.profile, ...(payload.profile || {}) },
                 experiences: { ...emptyResume.experiences, ...(payload.experiences || {}) },
                 abilities: { ...emptyResume.abilities, ...(payload.abilities || {}) },
-                quotes: Array.isArray(payload.quotes) ? payload.quotes : emptyResume.quotes,
+                quotes: withQuoteSlots(payload.quotes),
                 links: { ...emptyResume.links, ...(payload.links || {}) },
             };
         },

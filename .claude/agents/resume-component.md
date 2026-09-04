@@ -109,13 +109,20 @@ Note the existing code spreads the array before sorting, because
 
 ## Redux wiring — the step that is easy to miss
 
-A new resume field **must** be added to `emptyResume` in
-`src/reducers/resume.js`. The `update` reducer merges the API payload over
-that skeleton key by key; anything absent from `emptyResume` is dropped
-silently and the component renders blank with no error.
+The `update` reducer spreads the payload over the `emptyResume` skeleton, so
+**unknown fields pass through** — `profile.age` and `profile.location` are
+rendered today and appear nowhere in `emptyResume`.
 
-For a new array field, add it to `emptyResume` as `[]` and add a merge line
-alongside the existing `quotes` handling.
+Add a field to `emptyResume` when a component will dereference it **unguarded
+before the fetch resolves** — which is every section component, since they read
+`resume.abilities.languages` and friends directly on first render. For a new
+array field that is mapped over, add it as `[]`. For a field read at a fixed
+index, follow the `quotes` pattern, which backfills every slot: three
+components read `quotes[0]`/`[1]`/`[2]` with no guard, and a shorter array from
+the database used to white-screen the whole site.
+
+`src/reducers/resume.test.js` pins this behaviour — run `npm test` after
+touching the reducer.
 
 Also confirm the backend actually returns it — `../personal-site-py/server.py`,
 `GET /getResume`. A new section with no data behind it is not finished.
