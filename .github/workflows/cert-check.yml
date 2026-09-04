@@ -1,0 +1,444 @@
+# .github/workflows/cert-check.yml
+#
+# Watches the TLS certificate for austinzurbuchen.com from OUTSIDE the house.
+#
+# WHY THIS EXISTS
+#   Aug 2026: the cert covered austinzurbuchen.com + resume.austinzurbuchen.com.
+#   The 'resume' A record was deleted. Let's Encrypt validates EVERY SAN before
+#   issuing, so renewal failed for the WHOLE cert, including the healthy apex.
+#   Renewal started failing ~18 Jul; nobody noticed until 3 Sep, 17 days after
+#   expiry. From the outside a soon-to-fail renewal is byte-identical to a
+#   healthy cert, so expiry-watching alone cannot warn in time.
+#
+#   The load-bearing check here is therefore "does every SAN still resolve",
+#   not "when does the cert expire". It fires the day a record dies, which is
+#   weeks-to-months of runway, and it is pure DNS: it keeps working while the
+#   NAS or the home connection is down.
+#
+# WHERE IT RUNS
+#   GitHub-hosted runner. Nothing on the NAS: the NAS is the thing that failed.
+#
+# BRANCH
+#   MUST live on the DEFAULT branch (master). GitHub only runs `schedule` on
+#   the default branch. On `dev` this file will never fire and will never
+#   report an error about it.
+#
+# NOTE ON THE HEARTBEAT COMMIT
+#   Public repos have their scheduled workflows auto-disabled after 60 days of
+#   no repository activity. This repo has had seven quiet stretches longer than
+#   that. The heartbeat step below commits a status file when the status
+#   changes or when the repo has been quiet for 30 days, which keeps the clock
+#   alive without spamming the history. Pushes made with GITHUB_TOKEN do not
+#   trigger workflows, so there is no loop.
+
+name: cert-check
+
+on:
+  schedule:
+    # Twice daily at :17 — GitHub documents that scheduled runs are delayed
+    # (and sometimes dropped) at the top of the hour. Two runs a day means a
+    # dropped run is not a gap.
+    - cron: '17 7,19 * * *'
+  workflow_dispatch:
+    inputs:
+      selftest:
+        description: 'Post a throwaway issue to prove the alert path still reaches you'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # heartbeat/status commit (also resets the 60-day clock)
+  issues: write     # the alert itself
+
+concurrency:
+  group: cert-check
+  cancel-in-progress: false
+
+env:
+  HOST: austinzurbuchen.com
+  # The names you INTEND to serve. Any difference from the served cert is an
+  # error you must acknowledge by editing this line. That edit is the point.
+  EXPECTED_SANS: 'austinzurbuchen.com www.austinzurbuchen.com'
+  WARN_DAYS: '25'   # LE renews at ~30d. 25 => renewal has already failed, and
+  CRIT_DAYS: '10'   # it never fires on a healthy renewal cycle.
+  UNKNOWN_RUNS_BEFORE_ALERT: '4'   # ~2 days of "site unreachable" before paging
+  LC_ALL: C
+  TZ: UTC
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight — tools must exist, or say so loudly
+        run: |
+          set -Eeuo pipefail
+          for t in openssl curl git gh timeout; do
+            command -v "$t" >/dev/null || { echo "::error::$t is missing from the runner"; exit 1; }
+          done
+          if ! command -v dig >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq dnsutils
+          fi
+          command -v dig >/dev/null || { echo "::error::dig unavailable and could not be installed"; exit 1; }
+
+      - name: Check
+        id: check
+        run: |
+          set -Eeuo pipefail
+
+          # ---------- helpers -------------------------------------------------
+          problems=()   # human-readable lines, shown in the issue
+          tags=()       # stable short ids, used to detect "same problem as yesterday"
+          worst=0       # 0 OK, 1 WARN, 2 CRITICAL
+
+          fail() {  # fail <severity 1|2> <tag> <message>
+            local sev="$1" tag="$2" label=WARN
+            shift 2
+            if [ "$sev" -ge 2 ]; then label=CRITICAL; fi
+            problems+=("[$label] $*")
+            tags+=("$tag")
+            if [ "$sev" -gt "$worst" ]; then worst="$sev"; fi
+            return 0
+          }
+          ok() { problems+=("[ok] $*"); return 0; }
+
+          state() {  # state <KEY> — empty string if absent
+            [ -f monitor/state.env ] || { echo ""; return 0; }
+            grep -m1 "^$1=" monitor/state.env 2>/dev/null | cut -d= -f2- || true
+          }
+
+          PREV_SEV="$(state SEVERITY)";        PREV_SEV="${PREV_SEV:-OK}"
+          PREV_FP="$(state FINGERPRINT)"
+          PREV_NOTAFTER="$(state LAST_NOTAFTER)"
+          PREV_IP="$(state LAST_IP)"
+          UNKNOWN_STREAK="$(state UNKNOWN_STREAK)"; UNKNOWN_STREAK="${UNKNOWN_STREAK:-0}"
+
+          # ---------- authoritative nameserver --------------------------------
+          # Ask the domain's own NS, not a public resolver: a cached negative
+          # answer is not what Let's Encrypt will see.
+          DIGNS=""
+          NS="$(dig +short NS "$HOST" 2>/dev/null | head -1 | sed 's/\.$//' || true)"
+          if [ -z "$NS" ]; then
+            fail 1 no-ns "Cannot find an authoritative nameserver for $HOST (dig NS returned nothing). Falling back to the runner's resolver, which is weaker evidence."
+          # Sanity-probe the nameserver before trusting it. An NS that does not
+          # answer for the apex would make EVERY name below look like NXDOMAIN
+          # and turn this monitor into a daily false alarm — the one outcome
+          # worse than no monitor at all.
+          elif [ -z "$(dig +short A "$HOST" "@$NS" 2>/dev/null | grep -E '^[0-9.]+$' || true)" ]; then
+            fail 1 ns-unusable "Authoritative nameserver $NS did not answer for $HOST itself. Either the NS is broken/unreachable from the runner, or the apex A record is gone. Falling back to the runner's resolver for the checks below, so they are still meaningful but no longer authoritative."
+          else
+            ok "authoritative NS: $NS"
+            DIGNS="@$NS"
+          fi
+
+          # ---------- fetch the served certificate ----------------------------
+          # Deliberately NO -verify_return_error: an already-expired cert must
+          # still be introspectable, otherwise the monitor goes blind exactly
+          # when the outage starts.
+          LEAF="$(mktemp)"
+          got_cert=0
+          for attempt in 1 2 3; do
+            : > "$LEAF"
+            echo | timeout 30 openssl s_client -connect "$HOST:443" -servername "$HOST" 2>/dev/null \
+              | openssl x509 -outform pem > "$LEAF" 2>/dev/null || true
+            # Never trust s_client's prose. "Verify return code: 0 (ok)" is
+            # printed even when NO certificate was presented at all.
+            if grep -q 'BEGIN CERTIFICATE' "$LEAF"; then got_cert=1; break; fi
+            [ "$attempt" -lt 3 ] && sleep 15 || true
+          done
+
+          SANS=""
+          NOTAFTER="$PREV_NOTAFTER"
+          if [ "$got_cert" -eq 1 ]; then
+            UNKNOWN_STREAK=0
+            SANS="$(openssl x509 -in "$LEAF" -noout -ext subjectAltName 2>/dev/null \
+                    | tr ',' '\n' | sed -n 's/.*DNS://p' | sed 's/[[:space:]]//g' | grep . | sort -u || true)"
+            # A parser that returns nothing is a FAILURE, not a pass. Every
+            # per-SAN loop below would otherwise iterate zero times and be green.
+            if [ -z "$SANS" ]; then
+              fail 2 san-parse "Retrieved a certificate but parsed ZERO SANs from it. openssl output format may have changed — every SAN check below is therefore meaningless. Fix the parser."
+            fi
+            NOTAFTER="$(openssl x509 -in "$LEAF" -noout -enddate 2>/dev/null | cut -d= -f2 || true)"
+            [ -n "$NOTAFTER" ] || fail 2 enddate-parse "Could not parse notAfter from the served certificate."
+          else
+            UNKNOWN_STREAK="$(( UNKNOWN_STREAK + 1 ))"
+            if [ "$UNKNOWN_STREAK" -ge "$UNKNOWN_RUNS_BEFORE_ALERT" ]; then
+              fail 1 unreachable "No TLS handshake with $HOST for $UNKNOWN_STREAK consecutive runs (~$(( UNKNOWN_STREAK / 2 )) days). Site is down, the IP moved, or 443 is closed — and while it is down the certificate cannot be verified at all. Last cert seen expired: ${PREV_NOTAFTER:-unknown}."
+            else
+              ok "no TLS handshake (attempt streak $UNKNOWN_STREAK of $UNKNOWN_RUNS_BEFORE_ALERT) — treating as UNKNOWN, not OK, not yet alerting"
+            fi
+          fi
+
+          # ---------- THE CHECK THIS WHOLE FILE EXISTS FOR ---------------------
+          # Every name Let's Encrypt will have to validate at the next renewal
+          # must resolve. One dead name kills the certificate for ALL names.
+          # Union of what is on the cert and what you say you intend to serve,
+          # so this still runs (against EXPECTED_SANS) when the site is down.
+          CHECK_NAMES="$(printf '%s\n%s\n' "$SANS" "$(echo "$EXPECTED_SANS" | tr ' ' '\n')" | grep . | sort -u || true)"
+          if [ -z "$CHECK_NAMES" ]; then
+            fail 2 no-names "No names to check: the cert yielded no SANs and EXPECTED_SANS is empty. The monitor is not monitoring anything."
+          fi
+          LIVE_NAMES=""
+          for san in $CHECK_NAMES; do
+            addr="$( { dig +short A "$san" $DIGNS 2>/dev/null || true; dig +short AAAA "$san" $DIGNS 2>/dev/null || true; } \
+                     | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$|^[0-9a-fA-F:]*:[0-9a-fA-F:]*$' || true )"
+            rcode="$(dig +noall +comments A "$san" $DIGNS 2>/dev/null | sed -n 's/.*status: \([A-Z]*\).*/\1/p' | head -1 || true)"
+            if [ -n "$addr" ]; then
+              # A CNAME that resolves through to an address counts as alive:
+              # www is a CNAME to the apex, and Let's Encrypt is happy with that.
+              LIVE_NAMES="$LIVE_NAMES $san"
+              ok "DNS $san -> $(echo "$addr" | tr '\n' ' ')(${rcode:-?})"
+            else
+              fail 1 "dns-dead-$san" "SAN '$san' has NO A/AAAA record (${rcode:-no answer}). Let's Encrypt validates every SAN, so the NEXT renewal will fail for the ENTIRE certificate — including the names that are perfectly healthy. This is the exact failure that took the site down in Aug 2026. Fix: restore the record, or remove '$san' from the proxy host in Nginx Proxy Manager and re-issue."
+            fi
+          done
+
+          # ---------- served SAN set vs intended SAN set ------------------------
+          if [ "$got_cert" -eq 1 ] && [ -n "$SANS" ]; then
+            got="$(echo "$SANS" | tr ' ' '\n' | grep . | sort -u | tr '\n' ' ')"
+            want="$(echo "$EXPECTED_SANS" | tr ' ' '\n' | grep . | sort -u | tr '\n' ' ')"
+            if [ "$got" = "$want" ]; then
+              ok "SAN set matches EXPECTED_SANS: $got"
+            else
+              fail 1 san-drift "Certificate SAN drift. Serving [$got], EXPECTED_SANS says [$want]. Either a hostname was added to Nginx Proxy Manager (update EXPECTED_SANS in this workflow to acknowledge it, and make sure it resolves) or a name silently vanished from the cert."
+            fi
+          fi
+
+          # ---------- expiry, portable, no date parsing -------------------------
+          # openssl -checkend does the comparison internally: no locale, no GNU
+          # date, no month-abbreviation parsing to get subtly wrong.
+          if [ "$got_cert" -eq 1 ]; then
+            if ! openssl x509 -in "$LEAF" -noout -checkend 0 >/dev/null 2>&1; then
+              fail 2 expired "CERTIFICATE HAS ALREADY EXPIRED ($NOTAFTER). Every visitor is seeing a browser interstitial right now."
+            else
+              days=0
+              while [ "$days" -lt 400 ] && openssl x509 -in "$LEAF" -noout -checkend "$(( days * 86400 ))" >/dev/null 2>&1; do
+                days="$(( days + 1 ))"
+              done
+              if [ "$days" -le "$CRIT_DAYS" ]; then
+                failing_for=$(( 30 - days )); [ "$failing_for" -lt 0 ] && failing_for=0
+                fail 2 expiry-crit "Certificate expires in $days days ($NOTAFTER). Renewal has been failing for roughly $failing_for days. Fix today."
+              elif [ "$days" -le "$WARN_DAYS" ]; then
+                fail 1 expiry-warn "Certificate expires in $days days ($NOTAFTER). Let's Encrypt renews at ~30 days remaining, so renewal has ALREADY failed at least once. Cause is usually above; if nothing above fired, check the Nginx Proxy Manager logs and Let's Encrypt rate limits."
+              else
+                ok "expiry: $days days remaining ($NOTAFTER)"
+              fi
+            fi
+          fi
+
+          # ---------- HTTP-01 preconditions -------------------------------------
+          # These are invisible until a renewal is attempted, and can break
+          # months earlier. Measured on this deployment: NPM intercepts the
+          # challenge path and returns a bare 404, while any other unknown path
+          # falls through to the SPA and returns 200. So 404 is health.
+          for san in $LIVE_NAMES; do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 5 \
+                    "http://$san/.well-known/acme-challenge/cert-check-probe-$RANDOM" 2>/dev/null || true)"
+            # curl prints 000 AND exits non-zero on a connection failure; never
+            # let "|| echo 000" append a second value and fall through to *).
+            [ -n "$code" ] || code=000
+            case "$code" in
+              404) ok "ACME $san: port 80 open, challenge path intercepted by the proxy (404)" ;;
+              000) fail 1 "acme-unreachable-$san" "$san: port 80 unreachable. HTTP-01 cannot complete, so renewal will fail. Check the port forward, the ISP, and that the NAS is up." ;;
+              30*) fail 1 "acme-redirect-$san" "$san: the ACME challenge path redirects (HTTP $code). 'Force SSL' was almost certainly enabled on the proxy host — this breaks HTTP-01 renewal ~30-60 days from now, silently." ;;
+              200) fail 1 "acme-fallthrough-$san" "$san: the ACME challenge path returned 200, i.e. it fell through to the SPA instead of being intercepted. The webroot/challenge handling in Nginx Proxy Manager is gone." ;;
+              *)   fail 1 "acme-status-$san" "$san: unexpected HTTP $code on the ACME challenge path." ;;
+            esac
+          done
+
+          # ---------- is a visitor actually OK right now -------------------------
+          # System CA store, no -k. This is the ground truth for user impact and
+          # it is what lets the alert issue close itself on recovery.
+          for san in $LIVE_NAMES; do
+            if curl -sS -o /dev/null --max-time 20 --retry 3 --retry-delay 5 "https://$san/" 2>/dev/null; then
+              ok "chain validates for https://$san/"
+            else
+              rc=$?
+              if [ "$got_cert" -eq 1 ]; then
+                fail 2 "chain-$san" "https://$san/ does not validate against the system CA store (curl exit $rc). Visitors are seeing an interstitial."
+              else
+                ok "https://$san/ unreachable (curl exit $rc) — consistent with the UNKNOWN handshake above, not reported separately"
+              fi
+            fi
+          done
+
+          # ---------- record the apex address (diagnosis, not an alarm) ----------
+          IP="$(dig +short A "$HOST" $DIGNS 2>/dev/null | grep -E '^[0-9.]+$' | tail -1 || true)"
+          if [ -n "$IP" ] && [ -n "$PREV_IP" ] && [ "$IP" != "$PREV_IP" ]; then
+            ok "NOTE: apex A record changed $PREV_IP -> $IP (residential lease moved; not an alarm by itself)"
+          fi
+
+          # ---------- verdict, fingerprint, notification decision ----------------
+          # An UNKNOWN run verified NOTHING about the certificate — no expiry,
+          # no SANs. It must not report the same severity as a run that checked
+          # everything and found it healthy, or the run summary lies. It stays
+          # non-paging (the streak handles escalation) but it is not OK.
+          case "$worst" in 0) SEV=OK ;; 1) SEV=WARN ;; *) SEV=CRITICAL ;; esac
+          if [ "$SEV" = OK ] && [ "$got_cert" -ne 1 ]; then SEV=UNKNOWN; fi
+          FP=""
+          if [ "${#tags[@]}" -gt 0 ]; then
+            FP="$(printf '%s\n' "${tags[@]}" | sort | sha1sum | cut -c1-12)"
+          fi
+
+          # Tiered urgency. The point is to NOT send an identical alarm every
+          # day: a repeat of an already-reported problem refreshes the issue
+          # silently. A new problem, a changed problem, or an escalation pings.
+          rank() { case "$1" in CRITICAL) echo 2 ;; WARN) echo 1 ;; *) echo 0 ;; esac; }
+          NOTIFY=no
+          if [ "$SEV" != OK ]; then
+            if [ "$PREV_SEV" = OK ] || [ "$FP" != "$PREV_FP" ] || [ "$(rank "$SEV")" -gt "$(rank "$PREV_SEV")" ] || [ "$SEV" = CRITICAL ]; then
+              NOTIFY=yes
+            fi
+          fi
+
+          {
+            echo "cert-check for $HOST"
+            echo "verdict: $SEV (previous: $PREV_SEV)"
+            echo
+            if [ "${#problems[@]}" -gt 0 ]; then printf '%s\n' "${problems[@]}"; fi
+          } > report.txt
+          cat report.txt
+
+          # Only STABLE facts are committed. report.txt deliberately is not:
+          # it contains a day count that changes every run, which would turn
+          # the heartbeat into 730 commits a year.
+          mkdir -p monitor
+          {
+            echo "SEVERITY=$SEV"
+            echo "FINGERPRINT=$FP"
+            echo "UNKNOWN_STREAK=$UNKNOWN_STREAK"
+            echo "LAST_NOTAFTER=$NOTAFTER"
+            echo "LAST_IP=${IP:-$PREV_IP}"
+          } > monitor/state.env
+
+          {
+            echo "severity=$SEV"
+            echo "notify=$NOTIFY"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Alert
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          OWNER: ${{ github.repository_owner }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -Eeuo pipefail
+
+          # If the check step itself died, that IS the alert. A monitor that
+          # crashes must not look like a monitor that found nothing wrong.
+          SEV='${{ steps.check.outputs.severity }}'
+          NOTIFY='${{ steps.check.outputs.notify }}'
+          if [ '${{ steps.check.outcome }}' != 'success' ] || [ -z "$SEV" ]; then
+            SEV=CRITICAL
+            NOTIFY=yes
+            { echo "cert-check: THE MONITOR ITSELF FAILED"
+              echo
+              echo "The check step did not complete (outcome: ${{ steps.check.outcome }})."
+              echo "Nothing was verified. Treat the certificate status as UNKNOWN."
+              echo "$RUN_URL"
+            } > report.txt
+          fi
+
+          # Created here rather than as a manual setup step, so a missing label
+          # can never be the reason an alert silently fails to post.
+          gh label create cert-check --color B60205 --description "TLS/DNS monitor" 2>/dev/null || true
+
+          NUM="$(gh issue list --state open --label cert-check --limit 1 --json number --jq '.[0].number // empty')"
+
+          if [ "${{ inputs.selftest }}" = "true" ]; then
+            gh issue create --title "cert-check SELF-TEST — close me" --label cert-check \
+              --assignee "$OWNER" \
+              --body "@$OWNER this is a deliberate test of the alert path. If you are reading this outside GitHub, the channel works. $RUN_URL"
+            exit 0
+          fi
+
+          BODY="$(printf '@%s cert-check verdict: **%s**\n\n```\n%s\n```\n\n%s\n' "$OWNER" "$SEV" "$(cat report.txt)" "$RUN_URL")"
+          QUIET_BODY="$(printf 'cert-check verdict: **%s** (refreshed silently — no new notification, this problem was already reported)\n\n```\n%s\n```\n\n%s\n' "$SEV" "$(cat report.txt)" "$RUN_URL")"
+
+          if [ "$SEV" = OK ]; then
+            if [ -n "$NUM" ]; then
+              gh issue close "$NUM" --comment "Resolved — all checks green again."$'\n\n'"$RUN_URL"
+            fi
+            echo "all green"
+            exit 0
+          fi
+
+          # UNKNOWN: the site could not be reached at all, so nothing was
+          # verified. Never close an open issue on this — "I cannot see it" is
+          # not "it recovered". Escalation is handled by the streak counter.
+          if [ "$SEV" = UNKNOWN ]; then
+            echo "::warning::cert-check UNKNOWN — no TLS handshake; nothing verified this run"
+            exit 0
+          fi
+
+          if [ -z "$NUM" ]; then
+            gh issue create --title "cert-check: $SEV — $HOST" --label cert-check \
+              --assignee "$OWNER" --body "$BODY"
+          elif [ "$NOTIFY" = yes ]; then
+            gh issue edit "$NUM" --title "cert-check: $SEV — $HOST" --body "$BODY"
+            gh issue comment "$NUM" --body "$BODY"
+          else
+            # Same problem as last run: refresh the body, do NOT comment.
+            # Comments notify; edits do not. This is what stops a 25-day
+            # countdown becoming 25 identical emails you learn to ignore.
+            gh issue edit "$NUM" --body "$QUIET_BODY"
+            echo "::warning::cert-check $SEV — unchanged, already reported in issue #$NUM (no new notification sent)"
+          fi
+
+          # Optional phone push. Costs nothing when the secret is unset.
+          if [ -n "${NTFY_TOPIC:-}" ] && [ "$NOTIFY" = yes ]; then
+            curl -fsS --max-time 20 \
+              -H "Title: $HOST TLS/DNS $SEV" \
+              -H "Priority: $( [ "$SEV" = CRITICAL ] && echo urgent || echo high )" \
+              -H "Tags: rotating_light" \
+              -d "$(head -c 1500 report.txt)" \
+              "https://ntfy.sh/$NTFY_TOPIC" >/dev/null
+          fi
+
+      - name: Heartbeat — commit status, and keep the 60-day clock alive
+        if: always() && github.event_name != 'workflow_dispatch'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p monitor
+
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A monitor
+
+          # Commit when the status actually changed, or when the repo has been
+          # quiet for 30 days (GitHub disables schedules at 60 days of silence).
+          quiet_days="$(( ( $(date +%s) - $(git log -1 --format=%ct) ) / 86400 ))"
+          if git diff --cached --quiet && [ "$quiet_days" -lt 30 ]; then
+            echo "no status change, repo active ${quiet_days}d ago — nothing to commit"
+            exit 0
+          fi
+          date -u +%FT%TZ > monitor/heartbeat
+          git add monitor/heartbeat
+          sev="$(grep -m1 '^SEVERITY=' monitor/state.env 2>/dev/null | cut -d= -f2- || true)"
+          git commit -m "cert-check: ${sev:-heartbeat}"
+          git push || { git pull --rebase --autostash && git push; }
+
+      - name: Verdict
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          SEV='${{ steps.check.outputs.severity }}'
+          NOTIFY='${{ steps.check.outputs.notify }}'
+          if [ '${{ steps.check.outcome }}' != 'success' ] || [ -z "$SEV" ]; then
+            echo "::error::cert-check could not run to completion — certificate status is UNKNOWN"
+            exit 1
+          fi
+          # Red on anything new, changed, or critical. Deliberately green on an
+          # unchanged WARN that already has an open issue: the issue is the
+          # alert, and a daily red X for a known problem is how monitors get
+          # muted. CRITICAL always goes red.
+          if [ "$SEV" = CRITICAL ] || { [ "$SEV" != OK ] && [ "$NOTIFY" = yes ]; }; then
+            echo "::error::cert-check: $SEV"
+            exit 1
+          fi
+          echo "cert-check: $SEV"

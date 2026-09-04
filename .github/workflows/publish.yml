@@ -16,6 +16,9 @@ on:
     paths-ignore:
       - '**.md'
       - '.claude/**'
+      # CI config is not part of the image. Without this, adding or editing a
+      # workflow rebuilds and republishes the site for no reason.
+      - '.github/**'
   workflow_dispatch:
 
 permissions:

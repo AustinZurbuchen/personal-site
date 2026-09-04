@@ -224,6 +224,32 @@ which **silently ignores** the `level` option on `getAllByRole('heading', ...)`
 — so the canonical single-`h1` assertion passes regardless of the markup. The
 suite uses `querySelectorAll` where that matters.
 
+## Certificate monitoring
+
+`.github/workflows/cert-check.yml` watches TLS from outside the house, twice
+daily. It must live on **`master`** — GitHub runs `schedule` only on the default
+branch, and on `dev` it would never fire and never say so.
+
+Its load-bearing check is **SAN resolution**, not expiry. In Aug 2026 the cert
+covered `austinzurbuchen.com` + `resume.austinzurbuchen.com`; the `resume` A
+record was deleted, Let's Encrypt validates every SAN before issuing, and so
+renewal failed for the *whole* certificate including the healthy apex. Renewal
+began failing ~18 Jul and nobody noticed until 3 Sep — 17 days after expiry.
+From outside, a soon-to-fail renewal looks identical to a healthy cert, so
+watching expiry alone cannot warn in time. Resolving every SAN fires the day a
+record dies.
+
+Thresholds are WARN at 25 days and CRITICAL at 10, both deliberately **below**
+the ~30-day renewal trigger, so a healthy renewal cycle never raises an alarm —
+an alert that fires on success is how monitors get muted.
+
+When you add a hostname in Nginx Proxy Manager, update `EXPECTED_SANS` in the
+workflow in the same sitting. The drift check exists to force that edit.
+
+The heartbeat commit under `monitor/` is not noise: public repos have scheduled
+workflows auto-disabled after 60 days of inactivity, and this repo has had
+several quiet stretches longer than that.
+
 ## Commands
 
 ```
