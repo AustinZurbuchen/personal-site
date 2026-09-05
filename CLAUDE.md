@@ -230,11 +230,16 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 98 cases across 6 suites. They cover the two places this app
+`npm test` runs 109 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
-structure of the page (landmarks, one `h1`, heading nesting, list semantics,
-the star rating's text alternative) — a property that spans nine component
-files and that no single component test can protect.
+structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
+a property that spans nine component files and that no single component test
+can protect.
+
+The star rating's text alternative is NOT asserted in `site/index.test.js`,
+despite what an earlier version of this file said. It lives in
+`src/components/abilityitem/index.test.js` along with the shape-not-colour,
+string-coercion and clamping assertions — verified by grep, not assumed.
 
 `package.json` maps `^axios$` to `axios/dist/node/axios.cjs`; axios 1.x is ESM
 and CRA's Jest does not transform `node_modules`, so without the mapping the
@@ -292,7 +297,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 98 tests, 6 suites
+npm test      # 109 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.
