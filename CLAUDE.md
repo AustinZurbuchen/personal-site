@@ -131,9 +131,21 @@ backend are same-origin in production and CORS is not exercised.
 `location /api/` wraps that proxy in `limit_except GET HEAD { deny all; }`, so
 **the public API is read-only by proof rather than by convention** — no non-GET
 method reaches Flask from the internet regardless of any application bug. The
-planned admin vhost is a separate `server` block on a port that is never
-published through Nginx Proxy Manager, and does not carry that restriction. Do
-not relax this block to make writes work.
+admin vhost is a separate `server` block on port 8081, bound to `10.0.0.24` and
+never published through Nginx Proxy Manager, and does not carry that
+restriction. Do not relax this block to make writes work.
+
+**Editing is LAN-only on purpose, and that is a settled decision.** A VPN
+(Unraid's built-in WireGuard, or Tailscale) was considered and declined in Sep
+2026: the resume is edited from home, so remote access buys nothing, and an
+unpublished port cannot be attacked from the internet regardless of any bug in
+Flask or in this app — a guarantee no amount of application security matches.
+Do not propose reopening this without a reason to edit away from home.
+
+The practical cost is worth knowing: anyone (or anything) not on the LAN cannot
+verify the admin UI at all. Public-surface checks — bundle hashes, the read-only
+API, `GET /api/version` — still work from anywhere, so lean on those and ask
+someone on the LAN to confirm the rest.
 
 That hostname resolves because both containers share the `zurbnet` Docker
 network, declared `external: true` in both repos' `docker-compose.yml` and
