@@ -89,9 +89,25 @@ than inspecting the store. Do not reintroduce a gate like `resume?.profile` —
 such a gate opens before any response arrives, painting the blank skeleton. On
 a failed fetch the `loaderror` band renders instead of the hollow resume.
 
-`editMode` slice exists but nothing renders its toggle yet. It is kept for the
-planned edit mode; the MUI Edit button that used to reference it was deleted
-along with the login page, because it could never render.
+`editMode` drives in-place editing on the admin vhost: `signedIn`, which
+section is `openSection`, the `drafts` the user has actually touched (keyed by
+the API's own dotted ALLOWLIST path), and the outcome of the last PUT. The
+token is deliberately NOT here -- it lives in sessionStorage, owned by
+`src/utils/adminSession.js`, so a DevTools state snapshot never contains a
+write credential.
+
+Four sections are editable: `profile` (About Me) and the three quotes,
+`experiences` / `abilities` / `contact`. All four go through
+`src/utils/useSectionEditor.js`, which owns the drafts, the dirty derivation
+and the PUT; `src/utils/useQuoteEditor.js` wraps it for the three that own a
+`quotes.N.quote` / `quotes.N.by` pair, and `src/components/editbar/` is the
+control row. Adding a field means adding its allowlist path to a section's
+FIELDS, not writing a second mechanism.
+
+`openSection` is a single string, so opening a second editor closes the first.
+That is why `openEditor` asks before opening over another section's unsaved
+work -- `sectionOpened` empties the drafts, and without the prompt a second
+click discards typing with no undo.
 
 ## API URL resolution
 
@@ -208,13 +224,13 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 - `DISABLE_ESLINT_PLUGIN=true` in the build script, so lint errors will not
   fail a build.
 - CRA 5 / React 17 are both unmaintained.
-- CRA boilerplate not yet replaced: `manifest.json` name, the
-  `<meta name="description">`, and `App.test.js` (which asserts "learn react"
-  and fails).
+- CRA boilerplate is replaced: `manifest.json`, the `<meta
+  name="description">` and `App.test.js` were all rewritten. (An earlier
+  version of this file listed them as outstanding.)
 
 ## Tests
 
-`npm test` runs 57 cases across 5 suites. They cover the two places this app
+`npm test` runs 98 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics,
 the star rating's text alternative) — a property that spans nine component
@@ -276,7 +292,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 40 tests, 5 suites
+npm test      # 98 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

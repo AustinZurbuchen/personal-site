@@ -36,6 +36,24 @@
   margin-top: -40px;
 }
 
+// .by is pulled up 40px so the attribution sits tight under a single 40px line
+// of quote. Adjacent margins collapse to 30px + (-40px) = -10px, i.e. the
+// attribution box overlaps the quote box by 10px -- harmless where that lands
+// inside a 40px line box's half-leading, and NOT harmless once the quote is a
+// bordered, padded field, where the same 10px lands on the field's bottom edge.
+//
+// Both rules are 0,2,0 and beat the 0,1,0 base rules they override. Scoped to
+// the editing class so read mode is untouched.
+//
+// jsdom does no layout, so no test can catch this one. Verified in a browser.
+.titlesediting .subtitle {
+  margin-bottom: 12px;
+}
+
+.titlesediting .by {
+  margin-top: 0;
+}
+
 // .titles is width:100% plus 40px side margins, so its margin box is 80px wider
 // than its container at every width. Harmless inside the 180px gutter; real
 // overflow once that gutter drops to 24px, so this must land with the 1024px

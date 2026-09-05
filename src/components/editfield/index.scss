@@ -36,6 +36,16 @@
   font: inherit;
   color: inherit;
   letter-spacing: inherit;
+  // text-align does NOT come along with `font`, and the UA stylesheet resets it
+  // on form controls -- a textarea computes `start` however its parent is
+  // aligned. Without this the quote fields, which sit inside a centred
+  // .subtitle, jump their glyphs to the left edge the moment you click Edit,
+  // while the hidden ::after mirror stays centred. Inherited rather than set to
+  // a value, so About Me (inside a text-align:left .body) is unchanged.
+  //
+  // Cosmetic only: line breaking depends on the width, not the alignment, so
+  // the mirror measured the right HEIGHT even while the two disagreed.
+  text-align: inherit;
 
   grid-area: 1 / 1;
   display: block;

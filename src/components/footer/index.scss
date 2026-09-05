@@ -51,6 +51,57 @@
   color: #dfe0e0;
 }
 
+// ---------------------------------------------------------------------------
+// Edit mode on the dark band.
+//
+// Every one of these overrides a light-band default that is not merely dim here
+// but unreadable. Measured against the real values, not estimated:
+//
+//   .editfield        #dfe0e0 text on #ffffff   1.32:1   a pale smear on white
+//   .editfield[ro]    #dfe0e0 text on #f3efe0   1.15:1   worse while saving
+//   .editstatus       #434242 text on #444242   1.00:1   literally invisible
+//   .editerror        #434242 text on #444242   1.00:1   literally invisible
+//   field border      #727878      on #444242   2.22:1   under the 3:1 bar
+//
+// Scoped as .footer descendants rather than given a `dark` prop, because these
+// three only ever darken inside this band and the file already styles footer
+// descendants that way (.footer .subtitle, .footer :focus-visible). The BUTTON
+// is the exception and takes the prop, because .editcontroldark predates this
+// and the admin bar uses it while sitting outside every band.
+//
+// Each selector is one class deeper than the base rule it overrides, so it wins
+// on specificity rather than on source order.
+
+// #2f2e2e is the adminbar's field ground, introduced there as "a field ground
+// darker than the band it sits in", and reused rather than inventing a second.
+// #dfe0e0 on it is 10.24:1.
+//
+// The ground alone cannot carry the field's edge -- #2f2e2e against the #444242
+// band is only 1.36:1 -- so the BORDER does that work at #dfe0e0/7.55:1, which
+// clears the 3:1 bar a control boundary has to meet.
+.footer .editfield {
+  color: #dfe0e0;
+  background-color: #2f2e2e;
+  border-color: #dfe0e0;
+}
+
+// The saving state, following the light band's logic: a ground shifted toward
+// the band rather than a dimmed control. #dfe0e0 on #3a3939 is 8.70:1, so the
+// text the user is waiting on stays fully readable.
+.footer .editfield[readonly] {
+  background-color: #3a3939;
+  color: #dfe0e0;
+}
+
+.footer .editstatus {
+  color: #dfe0e0;
+}
+
+.footer .editerror {
+  color: #dfe0e0;
+  border-color: #dfe0e0;
+}
+
 // Three links in a nowrap row inside the old 180px gutter overflowed a phone by
 // ~400px, and the bare anchors were ~19px tall against the 44px tap minimum.
 @media (max-width: 768px) {

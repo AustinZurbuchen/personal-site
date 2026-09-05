@@ -3,6 +3,8 @@ import { useSelector } from "react-redux";
 import { generateLanguages, generateTechnologies } from "../../utils/abilities";
 import Itemslist from "../itemslist";
 import Titles from "../titles/index";
+import Editbar from "../editbar/index";
+import { useQuoteEditor } from "../../utils/useQuoteEditor";
 import "./index.scss";
 
 function Abilities() {
@@ -13,14 +15,22 @@ function Abilities() {
   );
   let quote = resume.quotes[1];
 
+  const { editor, editProps, context } = useQuoteEditor(
+    "abilities",
+    1,
+    "Abilities"
+  );
+
   return (
     <section className="abilities" aria-labelledby="abilities-title">
       <div className="container">
+        <Editbar context={context} editor={editor}></Editbar>
         <Titles
           id="abilities-title"
           title="Abilities"
           subtitle={quote.quote}
           by={quote.by}
+          edit={editProps}
         ></Titles>
         <div className="list column">
           <div className="languages">
