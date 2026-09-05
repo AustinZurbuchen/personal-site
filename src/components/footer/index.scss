@@ -102,6 +102,24 @@
   border-color: #dfe0e0;
 }
 
+// Three links sit in a row because they are three short words. Three URL fields
+// in that same row are ~180px each, which is not enough to see a linkedin.com
+// path -- so the list stacks while editing. Same shape the 768px breakpoint
+// already gives it, reached by a different route.
+//
+// 0,3,0, so it beats the .footer .links base rule rather than relying on source
+// order. Read mode is untouched.
+.footer .links.linksediting {
+  flex-direction: column;
+  align-items: stretch;
+  row-gap: 12px;
+}
+
+.footer .links.linksediting .link {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 // Three links in a nowrap row inside the old 180px gutter overflowed a phone by
 // ~400px, and the bare anchors were ~19px tall against the 44px tap minimum.
 @media (max-width: 768px) {

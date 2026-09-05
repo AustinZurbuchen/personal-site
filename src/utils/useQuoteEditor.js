@@ -14,11 +14,19 @@ import { useSectionEditor } from './useSectionEditor';
 // showing another band's quote and saves into that band's slot -- the screen
 // looks plausible the whole time. src/editflow.test.js pins each section to its
 // own slot for exactly this reason.
-export const useQuoteEditor = (section, index, name) => {
+//
+// `extraFields` lets a section own more than its quote -- the footer edits the
+// three contact links behind the same Save. They are appended to FIELDS and are
+// otherwise the caller's business: this hook shapes only the quote props, and
+// the returned `editor` builds the rest.
+export const useQuoteEditor = (section, index, name, extraFields) => {
     const quotePath = 'quotes.' + index + '.quote';
     const byPath = 'quotes.' + index + '.by';
 
-    const editor = useSectionEditor(section, [quotePath, byPath]);
+    const editor = useSectionEditor(
+        section,
+        [quotePath, byPath].concat(extraFields || [])
+    );
 
     // Undefined in read mode, so <Titles> renders precisely what it always did.
     const editProps = editor.editing

@@ -78,6 +78,17 @@ const Editfield = ({
         id={id}
         className="editfield"
         value={text}
+        // ONE row, not the HTML default of two. The wrapper is a 1x1 grid and
+        // the cell takes the taller of its two occupants, so a textarea left at
+        // rows="2" imposes a two-line floor: a one-line Name or Age field
+        // measured 74px against the mirror's correct 46px, and sat in a box
+        // twice the height of its content. Latent until a field shorter than
+        // two lines existed -- About Me and the quotes are both longer, so the
+        // floor never bound.
+        //
+        // The mirror is what sizes the field; this just stops the control
+        // arguing with it.
+        rows={1}
         maxLength={maxLength}
         // readOnly, never disabled, for the length of a save. A disabled
         // control is blurred by the browser and dropped from the tab order, so

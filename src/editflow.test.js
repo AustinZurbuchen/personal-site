@@ -21,7 +21,7 @@ import { resumeFixture } from "./test-utils/fixtures";
 //   * dom-testing-library 6.16 (what RTL 9.5 resolves) silently ignores the
 //     `level` option on ByRole heading queries, so heading structure is asserted
 //     with querySelectorAll, exactly as src/components/site/index.test.js does.
-//   * getByText matches an element's DIRECT text nodes, so `control(container, "Save", "About Me")`
+//   * getByText matches an element's DIRECT text nodes, so `control(container, "Save", "Profile")`
 //     finds the button even though it also carries a .visually-hidden " About
 //     Me" span.
 //
@@ -84,7 +84,7 @@ const renderLoadedApp = async () => {
 // axios rejects with an object carrying `response`; adminApi normalises it.
 const httpError = (status, data) => ({ response: { status, data } });
 // Four sections are editable now -- About Me plus the three quotes -- so a bare
-// control(container, "Save", "About Me") matches four buttons and throws. The accessible name is
+// control(container, "Save", "Profile") matches four buttons and throws. The accessible name is
 // label + context ("Save About Me"), but getByText matches an element's DIRECT
 // text nodes and the context lives in a child <span>, so it cannot see the whole
 // name. These match on textContent instead.
@@ -201,7 +201,7 @@ describe("edit flow: signing in", () => {
     fireEvent.click(getByText("Sign in"));
 
     await wait(() => {
-      expect(control(container, "Edit", "About Me")).toBeInTheDocument();
+      expect(control(container, "Edit", "Profile")).toBeInTheDocument();
     });
 
     expect(axios.post).toHaveBeenCalledTimes(1);
@@ -270,7 +270,7 @@ describe("edit flow: signing in", () => {
 
     // Seeded from storage when the store was created, so the reload case is
     // covered too: a live session comes back to the editor, not to the form.
-    expect(control(container, "Edit", "About Me")).toBeInTheDocument();
+    expect(control(container, "Edit", "Profile")).toBeInTheDocument();
 
     // Signed in, so the trigger reads "Editing" and Sign out is in the panel.
     fireEvent.click(getByText("Editing"));
@@ -281,6 +281,11 @@ describe("edit flow: signing in", () => {
   });
 });
 
+// The Profile band opens FIVE fields now -- subtitle, About Me, name, age and
+// location -- so container.querySelector("textarea") no longer means "the About
+// Me field"; it means whichever comes first in the DOM, which is the subtitle.
+// These target #aboutmeEdit by id. The .toBeNull() assertions are left alone:
+// they mean "no field anywhere", which is still exactly what they say.
 describe("edit flow: editing About Me", () => {
   const signedInApp = async () => {
     enableAdminUi();
@@ -298,9 +303,9 @@ describe("edit flow: editing About Me", () => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
-    fireEvent.click(control(container, "Edit", "About Me"));
+    fireEvent.click(control(container, "Edit", "Profile"));
 
-    const field = container.querySelector("textarea");
+    const field = container.querySelector("#aboutmeEdit");
     expect(field).not.toBeNull();
     expect(field.value).toBe(fixture.profile.description);
     // The <h3> that was already there is the field's accessible name, so edit
@@ -322,7 +327,7 @@ describe("edit flow: editing About Me", () => {
       items: container.querySelectorAll("li").length,
     };
 
-    fireEvent.click(control(container, "Edit", "About Me"));
+    fireEvent.click(control(container, "Edit", "Profile"));
 
     expect(container.querySelectorAll("h1,h2,h3,h4,h5,h6")).toHaveLength(
       before.headings
@@ -335,16 +340,16 @@ describe("edit flow: editing About Me", () => {
 
   it("keeps Save inert until something actually changed", async () => {
     const { container, getByText } = await signedInApp();
-    fireEvent.click(control(container, "Edit", "About Me"));
+    fireEvent.click(control(container, "Edit", "Profile"));
 
-    expect(control(container, "Save", "About Me").getAttribute("aria-disabled")).toBe("true");
-    fireEvent.click(control(container, "Save", "About Me"));
+    expect(control(container, "Save", "Profile").getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(control(container, "Save", "Profile"));
     expect(axios.put).not.toHaveBeenCalled();
 
-    fireEvent.change(container.querySelector("textarea"), {
+    fireEvent.change(container.querySelector("#aboutmeEdit"), {
       target: { value: "Rewritten." },
     });
-    expect(control(container, "Save", "About Me").getAttribute("aria-disabled")).toBeNull();
+    expect(control(container, "Save", "Profile").getAttribute("aria-disabled")).toBeNull();
     expect(container.querySelector(".editstatus").textContent).toBe(
       "Unsaved changes"
     );
@@ -356,11 +361,11 @@ describe("edit flow: editing About Me", () => {
     saved.profile.description = "Server's own copy.";
     axios.put.mockResolvedValue({ data: saved });
 
-    fireEvent.click(control(container, "Edit", "About Me"));
-    fireEvent.change(container.querySelector("textarea"), {
+    fireEvent.click(control(container, "Edit", "Profile"));
+    fireEvent.change(container.querySelector("#aboutmeEdit"), {
       target: { value: "Rewritten." },
     });
-    fireEvent.click(control(container, "Save", "About Me"));
+    fireEvent.click(control(container, "Save", "Profile"));
 
     await wait(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
@@ -376,9 +381,9 @@ describe("edit flow: editing About Me", () => {
     // The field repaints from the document the API returned, not from the local
     // draft: public_view() is shared by GET and PUT so the response is the only
     // correct picture of what the page should now show.
-    expect(container.querySelector("textarea").value).toBe("Server's own copy.");
+    expect(container.querySelector("#aboutmeEdit").value).toBe("Server's own copy.");
     // Save saves; Done exits. The editor is still open.
-    expect(control(container, "Done", "About Me")).toBeInTheDocument();
+    expect(control(container, "Done", "Profile")).toBeInTheDocument();
   });
 
   it("reverts to the stored value on Cancel without leaving edit mode", async () => {
@@ -391,17 +396,17 @@ describe("edit flow: editing About Me", () => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
-    fireEvent.click(control(container, "Edit", "About Me"));
-    fireEvent.change(container.querySelector("textarea"), {
+    fireEvent.click(control(container, "Edit", "Profile"));
+    fireEvent.change(container.querySelector("#aboutmeEdit"), {
       target: { value: "Throw this away." },
     });
-    fireEvent.click(control(container, "Cancel", "About Me"));
+    fireEvent.click(control(container, "Cancel", "Profile"));
 
-    expect(container.querySelector("textarea").value).toBe(
+    expect(container.querySelector("#aboutmeEdit").value).toBe(
       fixture.profile.description
     );
     expect(axios.put).not.toHaveBeenCalled();
-    expect(control(container, "Done", "About Me")).toBeInTheDocument();
+    expect(control(container, "Done", "Profile")).toBeInTheDocument();
   });
 
   it("closes on Done and puts the paragraph back", async () => {
@@ -414,14 +419,14 @@ describe("edit flow: editing About Me", () => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
-    fireEvent.click(control(container, "Edit", "About Me"));
-    fireEvent.click(control(container, "Done", "About Me"));
+    fireEvent.click(control(container, "Edit", "Profile"));
+    fireEvent.click(control(container, "Done", "Profile"));
 
     expect(container.querySelector("textarea")).toBeNull();
     expect(container.querySelector(".aboutme .body").textContent).toBe(
       fixture.profile.description
     );
-    expect(control(container, "Edit", "About Me")).toBeInTheDocument();
+    expect(control(container, "Edit", "Profile")).toBeInTheDocument();
   });
 
   it("asks before discarding unsaved text on Done", async () => {
@@ -433,18 +438,18 @@ describe("edit flow: editing About Me", () => {
       .mockImplementation(() => false);
     try {
       const { container, getByText } = await signedInApp();
-      fireEvent.click(control(container, "Edit", "About Me"));
-      fireEvent.change(container.querySelector("textarea"), {
+      fireEvent.click(control(container, "Edit", "Profile"));
+      fireEvent.change(container.querySelector("#aboutmeEdit"), {
         target: { value: "Half a sentence" },
       });
 
-      fireEvent.click(control(container, "Done", "About Me"));
+      fireEvent.click(control(container, "Done", "Profile"));
       expect(confirmSpy).toHaveBeenCalled();
       // Declined: still editing, text intact.
-      expect(container.querySelector("textarea").value).toBe("Half a sentence");
+      expect(container.querySelector("#aboutmeEdit").value).toBe("Half a sentence");
 
       confirmSpy.mockImplementation(() => true);
-      fireEvent.click(control(container, "Done", "About Me"));
+      fireEvent.click(control(container, "Done", "Profile"));
       expect(container.querySelector("textarea")).toBeNull();
     } finally {
       confirmSpy.mockRestore();
@@ -460,11 +465,11 @@ describe("edit flow: when a save fails", () => {
   };
 
   const typeAndSave = (container, text) => {
-    fireEvent.click(control(container, "Edit", "About Me"));
-    fireEvent.change(container.querySelector("textarea"), {
+    fireEvent.click(control(container, "Edit", "Profile"));
+    fireEvent.change(container.querySelector("#aboutmeEdit"), {
       target: { value: text },
     });
-    fireEvent.click(control(container, "Save", "About Me"));
+    fireEvent.click(control(container, "Save", "Profile"));
   };
 
   it("names the field the server rejected and keeps the typed text", async () => {
@@ -488,10 +493,10 @@ describe("edit flow: when a save fails", () => {
     expect(message).toMatch(/longer than 4000 characters/);
     // The draft is the only copy of the user's work: a failure must not touch
     // it and must not close the section.
-    expect(container.querySelector("textarea").value).toBe("Far too long.");
-    expect(control(container, "Save", "About Me")).toBeInTheDocument();
+    expect(container.querySelector("#aboutmeEdit").value).toBe("Far too long.");
+    expect(control(container, "Save", "Profile")).toBeInTheDocument();
     // The field points at the message, so it is read out with the field.
-    expect(container.querySelector("textarea").getAttribute("aria-describedby")).toBe(
+    expect(container.querySelector("#aboutmeEdit").getAttribute("aria-describedby")).toBe(
       "profile-saveerror"
     );
   });
@@ -535,14 +540,14 @@ describe("edit flow: when a save fails", () => {
     // ...but the session expired, and the paragraph being typed did not. The
     // editor is gated on the open section, not on being signed in, precisely so
     // a clock cannot delete someone's work.
-    expect(container.querySelector("textarea").value).toBe(
+    expect(container.querySelector("#aboutmeEdit").value).toBe(
       "Written over eight hours."
     );
     expect(container.querySelector(".editerror").textContent).toMatch(
       /still here/i
     );
     // Save is inert until there is a token again.
-    expect(control(container, "Save", "About Me").getAttribute("aria-disabled")).toBe("true");
+    expect(control(container, "Save", "Profile").getAttribute("aria-disabled")).toBe("true");
   });
 
   it("offers a retryable message, and no lost text, when the API is unreachable", async () => {
@@ -557,7 +562,7 @@ describe("edit flow: when a save fails", () => {
     expect(container.querySelector(".editerror").textContent).toMatch(
       /usually temporary/i
     );
-    expect(container.querySelector("textarea").value).toBe("Rewritten.");
+    expect(container.querySelector("#aboutmeEdit").value).toBe("Rewritten.");
   });
 });
 
@@ -582,7 +587,7 @@ describe("edit flow: editing before the resume loads is impossible", () => {
     enableAdminUi();
     seedStoredSession();
     const { container, getByText } = renderWithStore(<Site />);
-    expect(control(container, "Edit", "About Me")).toBeInTheDocument();
+    expect(control(container, "Edit", "Profile")).toBeInTheDocument();
   });
 });
 
@@ -865,9 +870,16 @@ describe("edit flow: editing the quotes", () => {
 
     expect(count("h1,h2,h3,h4,h5,h6")).toBe(before.headings);
     expect(count("section")).toBe(before.sections);
-    expect(count("a")).toBe(before.anchors);
     expect(count("ul")).toBe(before.lists);
     expect(count("li")).toBe(before.items);
+
+    // The anchors are the ONE deliberate exception, and only in this band: the
+    // footer editor owns links.email/linkedin/github, and each link's field
+    // REPLACES its <a> rather than sitting beside it. The <li>s that hold them
+    // are untouched above, so the list semantics survive; what goes is the
+    // three links themselves, leaving only the skip link.
+    expect(count("a")).toBe(before.anchors - 3);
+    expect(container.querySelectorAll("a.skip-link")).toHaveLength(1);
   });
 
   it("keeps the landmarks and the band's accessible name while editing", async () => {
@@ -1004,5 +1016,250 @@ describe("edit flow: editing the quotes", () => {
     expect(after.quote.getAttribute("aria-describedby")).toBe(
       "abilities-saveerror"
     );
+  });
+});
+
+// ===========================================================================
+// The rest of the scalars the server allowlists: the Profile band's subtitle,
+// name, age and location, and the footer's three contact links. No new section
+// and no new mechanism -- these are entries in an existing FIELDS array, which
+// is the property worth pinning.
+// ===========================================================================
+describe("edit flow: editing the remaining profile fields", () => {
+  const signedInAppWith = async (fixture) => {
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
+    const utils = renderApp();
+    await wait(() => {
+      expect(utils.container.querySelector("h1")).not.toBeNull();
+    });
+    return utils;
+  };
+
+  const openProfile = (container) =>
+    fireEvent.click(control(container, "Edit", "Profile"));
+
+  const openContact = (container) =>
+    fireEvent.click(control(container, "Edit", "Contact quote"));
+
+  it("opens all five profile fields, each seeded from its own path", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInAppWith(fixture);
+
+    openProfile(container);
+
+    expect(container.querySelector("#profile-subtitleEdit").value).toBe(
+      fixture.profile.subtitle
+    );
+    expect(container.querySelector("#aboutmeEdit").value).toBe(
+      fixture.profile.description
+    );
+    expect(container.querySelector("#profile-nameEdit").value).toBe(
+      fixture.profile.name
+    );
+    expect(container.querySelector("#profile-ageEdit").value).toBe(
+      fixture.profile.age
+    );
+    expect(container.querySelector("#profile-locationEdit").value).toBe(
+      fixture.profile.location
+    );
+  });
+
+  it("leaves the h1 a plain heading while the name is being edited", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInAppWith(fixture);
+
+    openProfile(container);
+    fireEvent.change(container.querySelector("#profile-nameEdit"), {
+      target: { value: "Someone Else" },
+    });
+
+    // profile.name renders twice -- here and as the <h1>. It is editable in the
+    // Details list precisely so the h1 is never a field: exactly one, still a
+    // heading, and still showing the SAVED name rather than the draft.
+    const headings = container.querySelectorAll("h1");
+    expect(headings).toHaveLength(1);
+    expect(headings[0].querySelector("textarea")).toBeNull();
+    expect(headings[0].textContent.trim()).toBe(fixture.profile.name);
+  });
+
+  it("keeps the definition list intact, with the fields inside the cells", async () => {
+    const { container } = await signedInAppWith();
+
+    openProfile(container);
+
+    const dl = container.querySelector(".details dl");
+    expect(dl).not.toBeNull();
+    expect(dl.querySelectorAll("dt")).toHaveLength(3);
+    expect(dl.querySelectorAll("dd")).toHaveLength(3);
+    // Each field is INSIDE its <dd>, not in place of it -- the dt/dd pairing is
+    // the whole accessibility story of this block.
+    const cells = dl.querySelectorAll("dd");
+    expect(cells[0].querySelector("#profile-nameEdit")).not.toBeNull();
+    expect(cells[1].querySelector("#profile-ageEdit")).not.toBeNull();
+    expect(cells[2].querySelector("#profile-locationEdit")).not.toBeNull();
+    // The visible term and the accessible name agree.
+    expect(cells[0].querySelector("textarea").getAttribute("aria-label")).toBe(
+      "Name"
+    );
+    expect(dl.querySelectorAll("dt")[0].textContent).toBe("Name:");
+  });
+
+  it("sends every changed profile path in one PUT, and only those", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInAppWith();
+
+    openProfile(container);
+    fireEvent.change(container.querySelector("#profile-nameEdit"), {
+      target: { value: "Grace Hopper" },
+    });
+    fireEvent.change(container.querySelector("#profile-locationEdit"), {
+      target: { value: "New York" },
+    });
+    fireEvent.click(control(container, "Save", "Profile"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    expect(body).toEqual({
+      updates: {
+        "profile.name": "Grace Hopper",
+        "profile.location": "New York",
+      },
+    });
+    // Five fields are open; three were not touched and must not be sent.
+    expect(Object.keys(body.updates)).toHaveLength(2);
+  });
+
+  it("swaps each contact link's anchor for a field holding its URL", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInAppWith(fixture);
+
+    openContact(container);
+
+    expect(container.querySelector("#contact-emailEdit").value).toBe(
+      fixture.links.email
+    );
+    expect(container.querySelector("#contact-linkedinEdit").value).toBe(
+      fixture.links.linkedin
+    );
+    expect(container.querySelector("#contact-githubEdit").value).toBe(
+      fixture.links.github
+    );
+
+    // The list survives; the anchors do not, deliberately. An <a> whose href is
+    // half-retyped is not a link, and clicking it would navigate away and lose
+    // the draft.
+    const items = container.querySelectorAll(".footer .links li");
+    expect(items).toHaveLength(3);
+    items.forEach((li) => {
+      expect(li.querySelector("a")).toBeNull();
+      expect(li.querySelector("textarea")).not.toBeNull();
+    });
+  });
+
+  it("names each link field for what it holds", async () => {
+    const { container } = await signedInAppWith();
+
+    openContact(container);
+
+    // "Linkedin" as link text names the destination; it does not name a field
+    // holding a URL, and all three would otherwise be "link".
+    expect(
+      container.querySelector("#contact-emailEdit").getAttribute("aria-label")
+    ).toBe("Email address");
+    expect(
+      container.querySelector("#contact-linkedinEdit").getAttribute("aria-label")
+    ).toBe("LinkedIn URL");
+    expect(
+      container.querySelector("#contact-githubEdit").getAttribute("aria-label")
+    ).toBe("GitHub URL");
+  });
+
+  it("saves a link and the quote together, from one Save", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInAppWith();
+
+    openContact(container);
+    fireEvent.change(container.querySelector("#contact-quoteEdit"), {
+      target: { value: "A new closing line." },
+    });
+    fireEvent.change(container.querySelector("#contact-githubEdit"), {
+      target: { value: "https://github.example/grace" },
+    });
+    fireEvent.click(control(container, "Save", "Contact quote"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    // One band, one Save, whichever of its five paths changed.
+    const [, body] = axios.put.mock.calls[0];
+    expect(body).toEqual({
+      updates: {
+        "quotes.2.quote": "A new closing line.",
+        "links.github": "https://github.example/grace",
+      },
+    });
+  });
+
+  it("restores the links when the editor closes", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInAppWith(fixture);
+
+    openContact(container);
+    fireEvent.click(control(container, "Done", "Contact quote"));
+
+    const anchors = container.querySelectorAll(".footer .links a");
+    expect(anchors).toHaveLength(3);
+    expect(anchors[0].getAttribute("href")).toBe("mailto:" + fixture.links.email);
+    expect(anchors[1].getAttribute("href")).toBe(fixture.links.linkedin);
+    expect(anchors[2].getAttribute("href")).toBe(fixture.links.github);
+  });
+
+  it("keeps every id unique with the biggest editor open", async () => {
+    const { container } = await signedInAppWith();
+
+    openProfile(container);
+    const ids = Array.prototype.slice
+      .call(container.querySelectorAll("[id]"))
+      .map((node) => node.id);
+    expect(ids).toHaveLength(new Set(ids).size);
+
+    openContact(container);
+    const after = Array.prototype.slice
+      .call(container.querySelectorAll("[id]"))
+      .map((node) => node.id);
+    expect(after).toHaveLength(new Set(after).size);
+  });
+
+  it("gives every field a single row, so a short one is not padded to two", async () => {
+    const { container } = await signedInAppWith();
+
+    openProfile(container);
+
+    // The wrapper is a 1x1 grid and the cell takes the taller of the textarea
+    // and the hidden mirror. Left at the HTML default of rows="2" the control
+    // imposes a two-line floor, and a one-line Name sat in a 74px box against
+    // the mirror's correct 46px. jsdom does no layout, so the heights cannot be
+    // asserted here -- the attribute that causes them can.
+    Array.prototype.slice
+      .call(container.querySelectorAll("textarea"))
+      .forEach((field) => expect(field.rows).toBe(1));
+  });
+
+  it("still gains nothing on the public render", async () => {
+    const { container } = await renderLoadedApp();
+
+    // Eleven editable paths now, across two sections. The gate is unchanged and
+    // this is the assertion that proves it.
+    expect(allControls(container)).toHaveLength(0);
+    expect(container.querySelectorAll("textarea")).toHaveLength(0);
+    expect(container.querySelectorAll("button")).toHaveLength(0);
+    expect(container.querySelectorAll(".footer .links a")).toHaveLength(3);
+    expect(container.querySelector(".details dl")).not.toBeNull();
   });
 });
