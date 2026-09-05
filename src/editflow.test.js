@@ -719,7 +719,7 @@ describe("edit flow: editing the quotes", () => {
   });
 
   const openQuote = (container, section, name) => {
-    fireEvent.click(control(container, "Edit", name + " quote"));
+    fireEvent.click(control(container, "Edit", name));
     return fieldsOf(container, section);
   };
 
@@ -759,7 +759,7 @@ describe("edit flow: editing the quotes", () => {
     const { quote, by } = openQuote(container, "experiences", "Experiences");
     fireEvent.change(quote, { target: { value: "A better quote." } });
     fireEvent.change(by, { target: { value: "- Ada" } });
-    fireEvent.click(control(container, "Save", "Experiences quote"));
+    fireEvent.click(control(container, "Save", "Experiences"));
 
     await wait(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
@@ -781,7 +781,7 @@ describe("edit flow: editing the quotes", () => {
 
     const { by } = openQuote(container, "abilities", "Abilities");
     fireEvent.change(by, { target: { value: "- Someone else" } });
-    fireEvent.click(control(container, "Save", "Abilities quote"));
+    fireEvent.click(control(container, "Save", "Abilities"));
 
     await wait(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
@@ -799,12 +799,12 @@ describe("edit flow: editing the quotes", () => {
     const { container } = await signedInAppWith();
 
     const { quote } = openQuote(container, "experiences", "Experiences");
-    const save = control(container, "Save", "Experiences quote");
+    const save = control(container, "Save", "Experiences");
     expect(save.getAttribute("aria-disabled")).toBe("true");
 
     fireEvent.change(quote, { target: { value: "Something else." } });
     expect(
-      control(container, "Save", "Experiences quote").getAttribute(
+      control(container, "Save", "Experiences").getAttribute(
         "aria-disabled"
       )
     ).toBeNull();
@@ -813,7 +813,7 @@ describe("edit flow: editing the quotes", () => {
     // back is genuinely clean -- not merely "a draft exists for this path".
     fireEvent.change(quote, { target: { value: "Experiences quote" } });
     expect(
-      control(container, "Save", "Experiences quote").getAttribute(
+      control(container, "Save", "Experiences").getAttribute(
         "aria-disabled"
       )
     ).toBe("true");
@@ -827,7 +827,7 @@ describe("edit flow: editing the quotes", () => {
 
     const { quote } = openQuote(container, "contact", "Contact");
     fireEvent.change(quote, { target: { value: "Mine." } });
-    fireEvent.click(control(container, "Save", "Contact quote"));
+    fireEvent.click(control(container, "Save", "Contact"));
 
     await wait(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
@@ -934,7 +934,7 @@ describe("edit flow: editing the quotes", () => {
       // falsy -- so an unguarded implementation would still pass a test that
       // only mocked it to false. Assert the draft survives instead.
       confirm.mockImplementation(() => false);
-      fireEvent.click(control(container, "Edit", "Abilities quote"));
+      fireEvent.click(control(container, "Edit", "Abilities"));
 
       expect(confirm).toHaveBeenCalled();
       expect(fieldsOf(container, "experiences").quote.value).toBe(
@@ -943,7 +943,7 @@ describe("edit flow: editing the quotes", () => {
       expect(fieldsOf(container, "abilities").quote).toBeNull();
 
       confirm.mockImplementation(() => true);
-      fireEvent.click(control(container, "Edit", "Abilities quote"));
+      fireEvent.click(control(container, "Edit", "Abilities"));
       expect(fieldsOf(container, "experiences").quote).toBeNull();
       expect(fieldsOf(container, "abilities").quote).not.toBeNull();
     } finally {
@@ -958,7 +958,7 @@ describe("edit flow: editing the quotes", () => {
       openQuote(container, "experiences", "Experiences");
       // Opened and touched nothing: there is no work to lose, so a prompt here
       // would be a nag that trains the operator to dismiss the real one.
-      fireEvent.click(control(container, "Edit", "Abilities quote"));
+      fireEvent.click(control(container, "Edit", "Abilities"));
 
       expect(confirm).not.toHaveBeenCalled();
       expect(fieldsOf(container, "abilities").quote).not.toBeNull();
@@ -982,7 +982,7 @@ describe("edit flow: editing the quotes", () => {
     // backfilled slot is not itself dirty, so Save has nothing to write into a
     // document whose array is shorter than this index.
     expect(
-      control(container, "Save", "Contact quote").getAttribute("aria-disabled")
+      control(container, "Save", "Contact").getAttribute("aria-disabled")
     ).toBe("true");
     expect(axios.put).not.toHaveBeenCalled();
   });
@@ -1001,7 +1001,7 @@ describe("edit flow: editing the quotes", () => {
     const { quote, by } = openQuote(container, "abilities", "Abilities");
     fireEvent.change(quote, { target: { value: "Far too long." } });
     fireEvent.change(by, { target: { value: "- Ada" } });
-    fireEvent.click(control(container, "Save", "Abilities quote"));
+    fireEvent.click(control(container, "Save", "Abilities"));
 
     await wait(() => {
       expect(container.querySelector(".editerror")).not.toBeNull();
@@ -1043,7 +1043,7 @@ describe("edit flow: editing the remaining profile fields", () => {
     fireEvent.click(control(container, "Edit", "Profile"));
 
   const openContact = (container) =>
-    fireEvent.click(control(container, "Edit", "Contact quote"));
+    fireEvent.click(control(container, "Edit", "Contact"));
 
   it("opens all five profile fields, each seeded from its own path", async () => {
     const fixture = resumeFixture();
@@ -1192,7 +1192,7 @@ describe("edit flow: editing the remaining profile fields", () => {
     fireEvent.change(container.querySelector("#contact-githubEdit"), {
       target: { value: "https://github.example/grace" },
     });
-    fireEvent.click(control(container, "Save", "Contact quote"));
+    fireEvent.click(control(container, "Save", "Contact"));
 
     await wait(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
@@ -1213,7 +1213,7 @@ describe("edit flow: editing the remaining profile fields", () => {
     const { container } = await signedInAppWith(fixture);
 
     openContact(container);
-    fireEvent.click(control(container, "Done", "Contact quote"));
+    fireEvent.click(control(container, "Done", "Contact"));
 
     const anchors = container.querySelectorAll(".footer .links a");
     expect(anchors).toHaveLength(3);
@@ -1456,7 +1456,7 @@ describe("edit flow: machinery a list editor depends on", () => {
     it("lands in the quote when the footer editor opens, not the GitHub URL", async () => {
       const { container } = await signedInApp();
 
-      fireEvent.click(control(container, "Edit", "Contact quote"));
+      fireEvent.click(control(container, "Edit", "Contact"));
 
       // Before focus was opt-in every Editfield called focus() on mount, so
       // the last one in document order won -- which in this band is the third
@@ -1477,11 +1477,306 @@ describe("edit flow: machinery a list editor depends on", () => {
     it("puts the caret at the end rather than selecting the value", async () => {
       const { container } = await signedInApp();
 
-      fireEvent.click(control(container, "Edit", "Contact quote"));
+      fireEvent.click(control(container, "Edit", "Contact"));
 
       const field = container.querySelector("#contact-quoteEdit");
       expect(field.selectionStart).toBe(field.value.length);
       expect(field.selectionEnd).toBe(field.value.length);
     });
+  });
+});
+
+// ===========================================================================
+// Ability rows: the first WHOLE-LIST edit, and the first control that is not a
+// text field. The server takes these four array paths as complete lists, never
+// by index, because both ability lists are re-sorted by star count for display.
+// ===========================================================================
+describe("edit flow: editing ability rows", () => {
+  const signedInApp = async () => {
+    enableAdminUi();
+    seedStoredSession();
+    return renderLoadedApp();
+  };
+
+  const openAbilities = (container) =>
+    fireEvent.click(control(container, "Edit", "Abilities"));
+
+  const langField = (container, i) =>
+    container.querySelector("#abilities-languages-" + i + "-abilityEdit");
+
+  const groups = (container) =>
+    container.querySelectorAll('.abilities [role="radiogroup"]');
+
+  const starsOf = (group) => group.querySelectorAll('[role="radio"]');
+
+  it("opens a field and a rating group for every row in both lists", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+
+    const rows =
+      fixture.abilities.languages.length + fixture.abilities.technologies.length;
+    expect(container.querySelectorAll(".abilityitem textarea")).toHaveLength(rows);
+    expect(groups(container)).toHaveLength(rows);
+    groups(container).forEach((g) => expect(starsOf(g)).toHaveLength(5));
+  });
+
+  it("seeds each field from its own row", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+
+    // The fixture's languages are JavaScript (5) then Dart (3) -- already in
+    // descending star order, so read and edit order agree here.
+    expect(langField(container, 0).value).toBe("JavaScript");
+    expect(langField(container, 1).value).toBe("Dart");
+  });
+
+  it("does NOT re-sort while editing", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+
+    // JavaScript is first at 5, Dart second at 3. Drop JavaScript to 1 so the
+    // two would genuinely CROSS under a star sort. Raising Dart to 5 instead
+    // proves nothing: the sort is stable, so equal values keep their order --
+    // which is how the first version of this test passed against a re-sorting
+    // build.
+    fireEvent.click(starsOf(groups(container)[0])[0]);
+
+    // A re-sort here would put Dart at index 0, re-key every row it passed and
+    // remount the field being typed in -- losing focus and the caret mid-word.
+    // The ids are position-based too, so they would attach to the wrong rows.
+    expect(langField(container, 0).value).toBe("JavaScript");
+    expect(langField(container, 1).value).toBe("Dart");
+    expect(
+      starsOf(groups(container)[0])[0].getAttribute("aria-checked")
+    ).toBe("true");
+  });
+
+  it("opens in the order read mode was just showing", async () => {
+    const { container } = await signedInApp();
+
+    const read = Array.prototype.slice
+      .call(container.querySelectorAll(".languages .abilityitem .ability"))
+      .map((cell) => cell.textContent);
+
+    openAbilities(container);
+
+    const editing = Array.prototype.slice
+      .call(container.querySelectorAll(".languages .abilityitem textarea"))
+      .map((field) => field.value);
+
+    // Painting the draft in its STORED order instead reshuffled every row the
+    // instant Edit was clicked -- same rows, different order, for no reason the
+    // operator caused. The display order comes from the store, which read mode
+    // just sorted and which does not change while an editor is open.
+    expect(editing).toEqual(read);
+  });
+
+  it("addresses a row by its stored index, not its position on screen", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+
+    // The fixture's languages are JavaScript(5) then Dart(3), so display order
+    // and stored order agree here -- what matters is that the id names the
+    // STORED index, so it keeps meaning the same row if they ever diverge.
+    const ids = Array.prototype.slice
+      .call(container.querySelectorAll(".languages .abilityitem textarea"))
+      .map((field) => field.id);
+    ids.forEach((id) => expect(id).toMatch(/^abilities-languages-\d+-abilityEdit$/));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("sends the whole list, with only the touched row changed", async () => {
+    const fixture = resumeFixture();
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    fireEvent.change(langField(container, 1), { target: { value: "Dart 3" } });
+    fireEvent.click(control(container, "Save", "Abilities"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    expect(Object.keys(body.updates)).toEqual(["abilities.languages"]);
+    // A WHOLE list -- every row, not just the edited one -- because the server
+    // replaces the array and a partial list would delete the rest.
+    expect(body.updates["abilities.languages"]).toHaveLength(
+      fixture.abilities.languages.length
+    );
+    expect(body.updates["abilities.languages"][0].ability).toBe("JavaScript");
+    expect(body.updates["abilities.languages"][1].ability).toBe("Dart 3");
+    // Untouched technologies are not sent at all.
+    expect(Object.keys(body.updates)).not.toContain("abilities.technologies");
+  });
+
+  it("sends stars as strings, repairing a row stored as a number", async () => {
+    // The document and LIST_SCHEMAS both use strings. A row left as a NUMBER by
+    // some earlier hand-edit would otherwise make the whole list unsavable,
+    // with an error naming a row the operator never touched and no way to fix
+    // it from the UI. This fixture is deliberately given that stale shape.
+    const stale = resumeFixture();
+    stale.abilities.languages[1].stars = 3;
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: stale });
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const utils = render(
+      <Provider store={makeStore()}>
+        <App />
+      </Provider>
+    );
+    await wait(() => {
+      expect(utils.container.querySelector("h1")).not.toBeNull();
+    });
+    const { container } = utils;
+
+    openAbilities(container);
+    fireEvent.change(langField(container, 0), { target: { value: "JS" } });
+    fireEvent.click(control(container, "Save", "Abilities"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    body.updates["abilities.languages"].forEach((row) => {
+      expect(typeof row.stars).toBe("string");
+    });
+  });
+
+  it("clicking a star sets that rating", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    const group = groups(container)[1]; // Dart, 3 stars
+    expect(starsOf(group)[2].getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.click(starsOf(group)[0]);
+
+    const after = starsOf(groups(container)[1]);
+    expect(after[0].getAttribute("aria-checked")).toBe("true");
+    expect(after[2].getAttribute("aria-checked")).toBe("false");
+    // The row's spoken value follows the glyphs.
+    expect(
+      container.querySelectorAll(".abilityitem")[1].textContent
+    ).toMatch(/1 out of 5/);
+  });
+
+  it("is a radiogroup with one tab stop, not five toggle buttons", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    const group = groups(container)[0]; // JavaScript, 5 stars
+
+    expect(group.getAttribute("aria-label")).toMatch(/JavaScript/);
+    const stars = starsOf(group);
+    // Exactly one tabbable button: thirty rows of five individually tabbable
+    // buttons would be 150 tab stops between the top of the editor and Save.
+    const tabbable = Array.prototype.slice
+      .call(stars)
+      .filter((b) => b.getAttribute("tabindex") === "0");
+    expect(tabbable).toHaveLength(1);
+    expect(tabbable[0].getAttribute("aria-checked")).toBe("true");
+    stars.forEach((b) => expect(b.getAttribute("aria-label")).toMatch(/star/));
+  });
+
+  it("moves the rating with the arrow keys", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    const group = groups(container)[1]; // Dart, 3
+
+    fireEvent.keyDown(group, { key: "ArrowLeft" });
+    expect(
+      starsOf(groups(container)[1])[1].getAttribute("aria-checked")
+    ).toBe("true");
+
+    fireEvent.keyDown(groups(container)[1], { key: "End" });
+    expect(
+      starsOf(groups(container)[1])[4].getAttribute("aria-checked")
+    ).toBe("true");
+
+    fireEvent.keyDown(groups(container)[1], { key: "Home" });
+    expect(
+      starsOf(groups(container)[1])[0].getAttribute("aria-checked")
+    ).toBe("true");
+  });
+
+  it("cannot be driven past either end", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    const first = () => starsOf(groups(container)[0]);
+
+    // JavaScript is already 5.
+    fireEvent.keyDown(groups(container)[0], { key: "ArrowRight" });
+    expect(first()[4].getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.keyDown(groups(container)[0], { key: "Home" });
+    fireEvent.keyDown(groups(container)[0], { key: "ArrowLeft" });
+    expect(first()[0].getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("adds no heading, section, anchor or list while editing rows", async () => {
+    const { container } = await signedInApp();
+    const count = (sel) => container.querySelectorAll(sel).length;
+    const before = {
+      headings: count("h1,h2,h3,h4,h5,h6"),
+      sections: count("section"),
+      anchors: count("a"),
+      lists: count("ul"),
+      items: count("li"),
+    };
+
+    openAbilities(container);
+
+    expect(count("h1,h2,h3,h4,h5,h6")).toBe(before.headings);
+    expect(count("section")).toBe(before.sections);
+    expect(count("a")).toBe(before.anchors);
+    expect(count("ul")).toBe(before.lists);
+    expect(count("li")).toBe(before.items);
+    container.querySelectorAll("li").forEach((li) =>
+      expect(li.parentElement.tagName).toBe("UL")
+    );
+  });
+
+  it("keeps every id unique with thirty fields open", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+
+    const ids = Array.prototype.slice
+      .call(container.querySelectorAll("[id]"))
+      .map((n) => n.id);
+    expect(ids).toHaveLength(new Set(ids).size);
+  });
+
+  it("stays clean until a row actually changes", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    expect(
+      control(container, "Save", "Abilities").getAttribute("aria-disabled")
+    ).toBe("true");
+
+    fireEvent.change(langField(container, 0), { target: { value: "Changed" } });
+    expect(
+      control(container, "Save", "Abilities").getAttribute("aria-disabled")
+    ).toBeNull();
+
+    // Typed back: value equality, so this is genuinely clean again rather than
+    // "a draft exists for this path".
+    fireEvent.change(langField(container, 0), { target: { value: "JavaScript" } });
+    expect(
+      control(container, "Save", "Abilities").getAttribute("aria-disabled")
+    ).toBe("true");
   });
 });

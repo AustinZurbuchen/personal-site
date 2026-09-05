@@ -59,5 +59,9 @@ export const useQuoteEditor = (section, index, name, extraFields) => {
           }
         : undefined;
 
-    return { editor, editProps, context: name + ' quote' };
+    // The band's name, not "<name> quote". These sections own more than their
+    // quote now -- Contact also owns the three links, Abilities both ability
+    // lists -- so "Edit Abilities quote" would undersell a button that opens
+    // thirty rows.
+    return { editor, editProps, context: name };
 };
