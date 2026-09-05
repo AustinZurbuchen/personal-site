@@ -1978,3 +1978,229 @@ describe("edit flow: editing experience rows", () => {
     ).toBe("true");
   });
 });
+
+// ===========================================================================
+// The save history. A READER: the API keeps fifty snapshots and a restore is a
+// whole-document replacement, which is the operation the allowlist exists to
+// refuse -- so the most important assertions here are about what it does not do.
+// ===========================================================================
+describe("edit flow: the save history", () => {
+  const signedInApp = async () => {
+    enableAdminUi();
+    seedStoredSession();
+    return renderLoadedApp();
+  };
+
+  const openPanel = (container, getByText) => {
+    fireEvent.click(getByText("Editing"));
+    return container;
+  };
+
+  // The backups mock is installed AFTER signedInApp(), never before:
+  // renderLoadedApp() arms axios.get with mockResolvedValue for the resume
+  // fetch, and mockResolvedValue REPLACES any mockImplementation already set --
+  // so a mock installed first is silently discarded and every request resolves
+  // with the resume.
+  const rows = [
+    {
+      id: "b3",
+      createdAt: "2026-09-05T12:00:00+00:00",
+      actor: "austin",
+      changedPaths: ["abilities.languages"],
+    },
+    {
+      id: "b2",
+      createdAt: "2026-09-04T09:30:00+00:00",
+      actor: "austin",
+      changedPaths: ["profile.description", "profile.name"],
+    },
+  ];
+
+  it("asks for nothing until the history is opened", async () => {
+    const { container, getByText } = await signedInApp();
+
+    openPanel(container, getByText);
+
+    // Opening the dropdown to sign out should not cost a request.
+    expect(axios.get.mock.calls.filter((c) => /backups/.test(c[0]))).toHaveLength(0);
+    expect(getByText("Save history")).toBeInTheDocument();
+  });
+
+  it("lists the generations newest first, with what changed", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.resolve({ data: { backups: rows } })
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+
+    await wait(() => {
+      expect(container.querySelector(".backuplist")).not.toBeNull();
+    });
+
+    const items = container.querySelectorAll(".backuprow");
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toMatch(/abilities\.languages/);
+    expect(items[1].textContent).toMatch(/profile\.description, profile\.name/);
+    // The machine-readable stamp survives beside the localised text.
+    expect(items[0].querySelector("time").getAttribute("datetime")).toBe(
+      "2026-09-05T12:00:00+00:00"
+    );
+  });
+
+  it("sends the bearer token and asks the right address", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.resolve({ data: { backups: [] } })
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+
+    await wait(() => {
+      expect(
+        axios.get.mock.calls.filter((c) => /backups/.test(c[0]))
+      ).toHaveLength(1);
+    });
+    const [url, config] = axios.get.mock.calls.find((c) => /backups/.test(c[0]));
+    expect(url).toBe("/api/backups");
+    expect(config.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("offers no way to restore one", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.resolve({ data: { backups: rows } })
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+    await wait(() => {
+      expect(container.querySelector(".backuplist")).not.toBeNull();
+    });
+
+    // THE ASSERTION THAT MATTERS. A restore is a whole-document replacement --
+    // the exact operation ALLOWLIST and LIST_SCHEMAS exist to refuse -- so this
+    // list must never grow a button that performs one, and no row may carry a
+    // control at all.
+    container.querySelectorAll(".backuprow").forEach((row) => {
+      expect(row.querySelector("button")).toBeNull();
+      expect(row.querySelector("a")).toBeNull();
+      expect(row.querySelector("input")).toBeNull();
+    });
+    expect(container.textContent).toMatch(/mongosh/i);
+    // And nothing was written on the way in.
+    expect(axios.put).not.toHaveBeenCalled();
+  });
+
+  it("says the four states apart", async () => {
+    // "none exist" is not "could not ask", and neither is an empty list.
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.resolve({ data: { backups: [] } })
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+
+    await wait(() => {
+      expect(container.textContent).toMatch(/No saves recorded yet/i);
+    });
+    expect(container.querySelector(".backuplist")).toBeNull();
+  });
+
+  it("reports a failure rather than an empty list", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.reject(new Error("Network Error"))
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+
+    await wait(() => {
+      expect(container.querySelector(".adminbarmessage")).not.toBeNull();
+    });
+    // An empty list here would read as "you have no backups", which is the
+    // opposite of the truth and exactly the wrong thing to believe mid-incident.
+    expect(container.querySelector(".adminbarmessage").textContent).toMatch(
+      /usually temporary/i
+    );
+    expect(container.querySelector(".backuplist")).toBeNull();
+  });
+
+  it("signs out when the history call finds the session dead", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.reject(httpError(401, { code: "session_expired" }))
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+
+    await wait(() => {
+      expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+    });
+    // Both copies, as everywhere else: storage is cleared by adminApi, the flag
+    // by the dispatch, or the UI keeps offering an editor that cannot save.
+    expect(allControls(container)).toHaveLength(0);
+  });
+
+  it("collapses with the panel, so it opens closed every time", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.resolve({ data: { backups: rows } })
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+    await wait(() => {
+      expect(container.querySelector(".backuplist")).not.toBeNull();
+    });
+
+    fireEvent.click(getByText("Editing"));   // close the dropdown
+    fireEvent.click(getByText("Editing"));   // and reopen it
+
+    expect(container.querySelector(".backuplist")).toBeNull();
+    expect(getByText("Save history")).toBeInTheDocument();
+  });
+
+  it("renders a row that is missing its date or paths", async () => {
+    const { container, getByText } = await signedInApp();
+    axios.get.mockImplementation((url) =>
+      /backups/.test(url)
+        ? Promise.resolve({
+            data: { backups: [{ id: "old", createdAt: null, actor: null, changedPaths: [] }] },
+          })
+        : Promise.resolve({ data: resumeFixture() })
+    );
+
+    openPanel(container, getByText);
+    fireEvent.click(getByText("Save history"));
+    await wait(() => {
+      expect(container.querySelector(".backuprow")).not.toBeNull();
+    });
+
+    // A backup you cannot fully describe still exists; dropping it would
+    // understate how many generations you have.
+    const row = container.querySelector(".backuprow");
+    expect(row.textContent).toMatch(/date unknown/i);
+    expect(row.textContent).toMatch(/no paths recorded/i);
+    expect(row.querySelector("time").getAttribute("datetime")).toBeNull();
+  });
+});

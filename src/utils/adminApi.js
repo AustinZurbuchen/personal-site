@@ -2,7 +2,7 @@ import axios from "axios";
 import { resolveServerUrl } from "./env";
 import { readSession, writeSession, clearSession } from "./adminSession";
 
-// The two admin calls and the one vocabulary for their failures.
+// The three admin calls and the one vocabulary for their failures.
 //
 // Every component talks to the write API through this file, so there is exactly
 // one place that knows the base URL, the Authorization header shape, and how an
@@ -14,7 +14,7 @@ import { readSession, writeSession, clearSession } from "./adminSession";
 //
 // NOTE for the existing suite: src/App.test.js mocks axios as `{ get }` only.
 // Nothing here runs unless the admin flag is on, and the flag is off in jsdom,
-// so the missing `post`/`put` never bite. Do not call either function at module
+// so the missing `post`/`put` never bite. Do not call any of them at module
 // scope.
 
 // axios has NO default timeout. Without this a save against a hung proxy sits
@@ -239,6 +239,46 @@ export function saveFields(updates) {
         // Drop the dead token HERE, at the one place that learns it is dead.
         // Leaving it in storage means the next Save retries with a token that
         // cannot work, and hasSession() keeps claiming the user is signed in.
+        if (isAuthFailure(normalized)) {
+          clearSession();
+        }
+        throw normalized;
+      }
+    );
+}
+
+// GET /backups -> {"backups": [{id, createdAt, actor, changedPaths}, ...]},
+// newest first. Metadata only: the API never sends the snapshots themselves.
+//
+// A READER, not a restore. A restore is a whole-document replacement -- exactly
+// what the server's allowlist exists to refuse -- so there is deliberately no
+// call here that could perform one. This tells the operator WHICH generation
+// they want; the restore itself stays a mongosh command.
+//
+// Resolves with an array, never null, so a caller can render it without
+// guarding. A row missing its date or actor comes through with nulls rather
+// than being dropped: a backup you cannot fully describe is still a backup that
+// exists, and hiding it would misreport how many generations you have.
+export function fetchBackups() {
+  const session = readSession();
+  if (!session) {
+    return Promise.reject(apiError("session_expired"));
+  }
+
+  return axios
+    .get(`${resolveServerUrl()}/backups`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      timeout: REQUEST_TIMEOUT_MS,
+    })
+    .then(
+      (response) => {
+        const rows = response && response.data && response.data.backups;
+        return Array.isArray(rows) ? rows : [];
+      },
+      (error) => {
+        const normalized = normalizeError(error);
+        // Same rule as saveFields: the one place that learns a token is dead
+        // clears it, or hasSession() keeps claiming the user is signed in.
         if (isAuthFailure(normalized)) {
           clearSession();
         }

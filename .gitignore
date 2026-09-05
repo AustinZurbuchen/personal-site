@@ -29,3 +29,7 @@ yarn-error.log*
 # Local dev stub: a copy of GET /api/getResume so `npm start` renders real
 # content without a backend. Never commit it.
 public/getResume
+# The same dev-stub trick for the save history: `npm start` serves public/ at
+# the root, so a file here answers GET /backups with no API running. Ignored for
+# the same reason getResume is -- it is scratch data, not the contract.
+public/backups

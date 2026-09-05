@@ -232,7 +232,7 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 143 cases across 6 suites. They cover the two places this app
+`npm test` runs 152 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
 a property that spans nine component files and that no single component test
@@ -299,7 +299,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 143 tests, 6 suites
+npm test      # 152 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

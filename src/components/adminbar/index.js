@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Editcontrol from "../editcontrol/index";
+import Backuplist from "../backuplist/index";
 import { sessionStarted, sessionEnded, selectSignedIn } from "../../reducers/editMode";
-import { signIn, signOut } from "../../utils/adminApi";
+import { signIn, signOut, fetchBackups } from "../../utils/adminApi";
 import { isAdminUi } from "../../utils/env";
 import "./index.scss";
 
@@ -35,6 +36,15 @@ function Adminbar() {
   // inserted node is announced.
   const [failure, setFailure] = useState(null);
 
+  // The save history. Four states rather than one nullable list, because
+  // "not asked yet", "asking", "none exist" and "could not ask" are four
+  // different things to put on screen and collapsing them produces an empty
+  // list that looks like an answer.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRows, setHistoryRows] = useState(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+
   const triggerRef = useRef(null);
   const firstFieldRef = useRef(null);
   const rootRef = useRef(null);
@@ -57,6 +67,40 @@ function Adminbar() {
     setUsername("");
     setPassword("");
     setFailure(null);
+    // The history collapses with the panel, for the same reason the form
+    // empties: the panel opens in one known state however it was closed.
+    setHistoryOpen(false);
+    setHistoryRows(null);
+    setHistoryError(null);
+  };
+
+  // Fetched on demand, never on mount. Opening the dropdown to sign out should
+  // not cost a request, and the list is only useful when something has gone
+  // wrong -- which is rare.
+  const toggleHistory = () => {
+    if (historyOpen) {
+      setHistoryOpen(false);
+      return;
+    }
+    setHistoryOpen(true);
+    if (historyBusy) return;
+    setHistoryBusy(true);
+    setHistoryError(null);
+    fetchBackups()
+      .then((rows) => {
+        setHistoryBusy(false);
+        setHistoryRows(rows);
+      })
+      .catch((error) => {
+        setHistoryBusy(false);
+        setHistoryRows(null);
+        setHistoryError(error.message);
+        // A dead token here means the same as anywhere else: adminApi has
+        // already cleared storage, so clear the flag that drives the render.
+        if (error.code === "unauthorized" || error.code === "session_expired") {
+          dispatch(sessionEnded());
+        }
+      });
   };
 
   // A click anywhere outside the widget closes it. Bound on mousedown rather
@@ -184,6 +228,18 @@ function Adminbar() {
               <p className="adminbarstatus">
                 Signed in. Edit controls are on each section.
               </p>
+              <Editcontrol
+                label={historyOpen ? "Hide history" : "Save history"}
+                dark
+                onClick={toggleHistory}
+              ></Editcontrol>
+              {historyOpen && (
+                <Backuplist
+                  rows={historyRows}
+                  busy={historyBusy}
+                  error={historyError}
+                ></Backuplist>
+              )}
               <Editcontrol label="Sign out" dark onClick={onSignOut}></Editcontrol>
             </>
           ) : (
