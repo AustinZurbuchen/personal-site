@@ -1,44 +1,43 @@
 import React from "react";
 import Abilityitem from "../components/abilityitem/index";
 
-export function generateLanguages(languageData) {
-  let languages = languageData.sort((a, b) => {
-    return b.stars - a.stars;
-  });
-  let languageComponents = [];
+// One builder, two exported names -- the two functions were identical apart
+// from a variable name.
+//
+// THE SORT IS SKIPPED WHILE EDITING, and that is not a shortcut. Read mode
+// orders by star count, and key={i} keys a row by its POSITION in that order.
+// Raise a row from 3 stars to 5 during an edit and it would jump to the top,
+// React would re-key every row it passed, and the field the user is typing in
+// would be remounted -- losing focus and the caret mid-word. Edit mode renders
+// the draft in its stored order, so an index means the same row before and
+// after a keystroke.
+//
+// The rows still SAVE in that stored order, and the next read re-sorts for
+// display, so nothing about the rendered result changes once the editor closes.
+const buildAbilityRows = (rows, edit) => {
+  const ordered = edit
+    ? rows
+    : // A copy, because Array.prototype.sort mutates and the store's arrays are
+      // frozen by immer. Callers used to own this copy; owning it here means a
+      // caller cannot forget.
+      [...rows].sort((a, b) => b.stars - a.stars);
 
-  let i = 0;
-  for (let language of languages) {
-    languageComponents.push(
-      <Abilityitem
-        key={i.toString()}
-        ability={language.ability}
-        stars={language.stars}
-      ></Abilityitem>
-    );
-    i++;
-  }
-  return languageComponents;
+  return ordered.map((row, index) => (
+    <Abilityitem
+      key={index.toString()}
+      ability={row.ability}
+      stars={row.stars}
+      edit={edit ? edit.forRow(index) : undefined}
+    ></Abilityitem>
+  ));
+};
+
+export function generateLanguages(languageData, edit) {
+  return buildAbilityRows(languageData, edit);
 }
 
-export function generateTechnologies(technologyData) {
-  let technologies = technologyData.sort((a, b) => {
-    return b.stars - a.stars;
-  });
-  let technologyComponents = [];
-
-  let i = 0;
-  for (let technology of technologies) {
-    technologyComponents.push(
-      <Abilityitem
-        key={i.toString()}
-        ability={technology.ability}
-        stars={technology.stars}
-      ></Abilityitem>
-    );
-    i++;
-  }
-  return technologyComponents;
+export function generateTechnologies(technologyData, edit) {
+  return buildAbilityRows(technologyData, edit);
 }
 
 // The glyph count and the "{n} out of 5" text alternative in Abilityitem are

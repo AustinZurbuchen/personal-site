@@ -45,10 +45,15 @@ export function resumeFixture() {
     },
     abilities: {
       languages: [
-        { ability: "JavaScript", stars: 5 },
-        { ability: "Dart", stars: 3 },
+        // Strings, as the real document stores them. They were numbers here,
+        // which is a shape production does not have -- and it hid the fact that
+        // LIST_SCHEMAS requires a string. abilities.test.js still exercises
+        // numbers, "7", undefined and null against normalizeStars directly,
+        // which is where that coercion belongs.
+        { ability: "JavaScript", stars: "5" },
+        { ability: "Dart", stars: "3" },
       ],
-      technologies: [{ ability: "ReactJS", stars: 4 }],
+      technologies: [{ ability: "ReactJS", stars: "4" }],
     },
     quotes: [
       { quote: "Experiences quote", by: "- A" },

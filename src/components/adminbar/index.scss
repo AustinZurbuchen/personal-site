@@ -1,0 +1,148 @@
+// Admin chrome. Fixed to the top right so it is reachable anywhere down a
+// ~450vh page, and small enough that the admin vhost still reads as the site
+// rather than as a tool.
+//
+// It floats over five bands with very different grounds — the teal hero wash,
+// two creams, white, and the dark footer — so a single text colour could not
+// read on all of them. The trigger therefore carries its own chip in the
+// footer's own #444242 / #dfe0e0 pair, which is 7.55:1 and already in the
+// palette.
+.adminbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.admintrigger {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #dfe0e0;
+  background: rgba(68, 66, 66, 0.82);
+  border: 1px solid rgba(223, 224, 224, 0.35);
+  border-radius: 2px;
+  padding: 7px 11px;
+  // 44px is the tap-target floor used everywhere else on the site; the chip is
+  // deliberately smaller than that visually, so the padding does the work.
+  min-height: 34px;
+  cursor: pointer;
+  // Quiet until wanted. Not lower than this: at 0.5 the chip stops being
+  // findable, and the whole feature depends on the owner being able to find it.
+  opacity: 0.72;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.admintrigger:hover,
+.admintrigger:focus-visible {
+  opacity: 1;
+  background: #444242;
+}
+
+// Signed in is a state worth seeing at a glance, since edit controls are live
+// on every section. Teal border rather than teal text: #1f9693 on #444242 is
+// only 2.4:1, which is fine for a 1px edge and not for a word.
+.adminbarlive .admintrigger {
+  opacity: 1;
+  border-color: #1f9693;
+}
+
+.admintriggermark {
+  margin-left: 7px;
+  font-size: 10px;
+}
+
+.adminpanel {
+  margin-top: 6px;
+  padding: 14px 16px;
+  background: #444242;
+  border: 1px solid rgba(223, 224, 224, 0.35);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  min-width: 240px;
+  // Long enough to hold an email-style username without the panel growing to
+  // the width of the viewport.
+  max-width: min(320px, calc(100vw - 24px));
+}
+
+.adminbarform {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adminbarstatus {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #dfe0e0;
+}
+
+.adminbarinput {
+  font-family: "Courier New", Courier, monospace;
+  // 16px, not smaller: iOS Safari zooms the viewport on focus for anything
+  // under 16px, and the page never zooms back out.
+  font-size: 16px;
+  color: #dfe0e0;
+  background: #2f2e2e;
+  border: 1px solid #727878;
+  border-radius: 2px;
+  padding: 8px 10px;
+  min-height: 44px;
+  width: 100%;
+  // The site has no global box-sizing, and deliberately so — border-box would
+  // collapse the approved 1170px band (810px content + 360px gutter) to 810px.
+  // So width:100% here is 100% of the panel's CONTENT box, and the 20px padding
+  // plus 2px border push the field 22px past the panel edge. Scoped to this
+  // element rather than fixed globally, for the same reason.
+  box-sizing: border-box;
+}
+
+.adminbarinput::placeholder {
+  color: #9a9a94;
+}
+
+.adminbarmessage {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  // Lighter than the site's error red would be here: this sits on #444242, and
+  // the message must stay readable rather than merely look alarming.
+  color: #f0b8ae;
+}
+
+// The site's global :focus-visible ring is #434242, which vanishes on this
+// panel's own #444242 ground.
+.adminbar :focus-visible {
+  outline: 2px solid #dfe0e0;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .adminbar {
+    top: 8px;
+    right: 8px;
+  }
+
+  .adminpanel {
+    // Anchored to the right edge on a phone, where an unconstrained panel would
+    // otherwise run off the left of the screen.
+    max-width: calc(100vw - 16px);
+  }
+}
+
+// A trigger that fades on hover is a cue; one that animates for someone who
+// asked for less motion is not.
+@media (prefers-reduced-motion: reduce) {
+  .admintrigger {
+    transition: none;
+  }
+}

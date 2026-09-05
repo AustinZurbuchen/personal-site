@@ -15,5 +15,8 @@ RUN sed -i 's/\r$//' /docker-entrypoint.d/40-env-config.sh \
   && chmod +x /docker-entrypoint.d/40-env-config.sh
 ENV REACT_APP_SERVER_URL=
 
-EXPOSE 80
+# 8081 is the admin vhost (see nginx.conf). EXPOSE publishes nothing — it is
+# metadata — but Unraid's template editor reads it when offering ports, so
+# without it 8081 is not offered in the dropdown and has to be typed by hand.
+EXPOSE 80 8081
 CMD ["nginx", "-g", "daemon off;"]

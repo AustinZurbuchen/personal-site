@@ -5,7 +5,8 @@ import { useDispatch } from "react-redux";
 import { update } from "./reducers/resume";
 import Site from "./components/site/index";
 import Loaderror from "./components/loaderror/index";
-import Login from "./components/login";
+import Adminbar from "./components/adminbar/index";
+import { resolveServerUrl } from "./utils/env";
 import "./App.scss";
 
 function App() {
@@ -17,15 +18,14 @@ function App() {
   // failed.
   const [status, setStatus] = useState("loading");
   const dispatch = useDispatch();
-  const runtimeServerUrl =
-    typeof window.__ENV__?.REACT_APP_SERVER_URL === "string"
-      ? window.__ENV__.REACT_APP_SERVER_URL
-      : "";
-  const serverUrl =
-    runtimeServerUrl ||
-    (process.env.NODE_ENV === "development"
-      ? process.env.REACT_APP_SERVER_URL || ""
-      : "");
+  // Moved to src/utils/env.js, unchanged, because src/utils/adminApi.js needs
+  // the same value for /session and /updateResume and a second copy of a
+  // three-layer fallback is a second chance to get it wrong. Still resolved on
+  // every render rather than memoised: window.__ENV__ is set by a <script>
+  // before the bundle and never changes afterwards, and src/App.test.js assigns
+  // it between renders. It returns a string, so the [dispatch, serverUrl]
+  // dependency array below compares exactly as the inline version did.
+  const serverUrl = resolveServerUrl();
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +47,16 @@ function App() {
 
   return (
     <div className="App">
+      {/* Renders null unless window.__ENV__.REACT_APP_ADMIN is set, which only
+          the :8081 server block in nginx.conf does. On the public vhost -- and
+          in every existing test, none of which sets that key -- it contributes
+          no element, no landmark, no heading and no button.
+
+          Deliberately OUTSIDE the router and outside the fetch status: an admin
+          can sign in while /getResume is failing, and the sign-in form has no
+          reason to wait on the resume. It also means
+          src/components/site/index.js is not touched at all by this feature. */}
+      <Adminbar></Adminbar>
       <BrowserRouter>
         <Routes>
           <Route
@@ -60,7 +70,6 @@ function App() {
             }
             exact
           />
-          <Route path="/login" element={<Login />} exact />
         </Routes>
       </BrowserRouter>
     </div>

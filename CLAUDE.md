@@ -6,8 +6,10 @@ Flask API (separate repo, `../personal-site-py`).
 
 ## Stack
 
-CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · MUI 5 + Emotion ·
-react-router-dom 6 · axios · Sass. Deployed as a Docker image (node:20-alpine
+CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · react-router-dom 6 ·
+axios · Sass. **No component library** — MUI and Emotion were removed once the
+login page was deleted, taking the bundle from 375KB to 219KB. Do not add one
+back; the design system is hand-rolled SCSS and a library's defaults fight it. Deployed as a Docker image (node:20-alpine
 build → nginx:1.27-alpine serve) on an Unraid NAS behind Nginx Proxy Manager
 (openresty), DNS via Namecheap.
 
@@ -87,8 +89,27 @@ than inspecting the store. Do not reintroduce a gate like `resume?.profile` —
 such a gate opens before any response arrives, painting the blank skeleton. On
 a failed fetch the `loaderror` band renders instead of the hollow resume.
 
-`editMode` slice exists but nothing renders its toggle; the edit flow is
-unfinished. Treat it as WIP.
+`editMode` drives in-place editing on the admin vhost: `signedIn`, which
+section is `openSection`, the `drafts` the user has actually touched (keyed by
+the API's own dotted ALLOWLIST path), and the outcome of the last PUT. The
+token is deliberately NOT here -- it lives in sessionStorage, owned by
+`src/utils/adminSession.js`, so a DevTools state snapshot never contains a
+write credential.
+
+Four sections are editable and between them cover every path the server
+allows: `profile` (subtitle, About Me, name, age, location), `experiences` and
+`abilities` (each a quote plus two whole lists of rows), and `contact` (a quote
+plus the three links). All four go through
+`src/utils/useSectionEditor.js`, which owns the drafts, the dirty derivation
+and the PUT; `src/utils/useQuoteEditor.js` wraps it for the three that own a
+`quotes.N.quote` / `quotes.N.by` pair, and `src/components/editbar/` is the
+control row. Adding a field means adding its allowlist path to a section's
+FIELDS, not writing a second mechanism.
+
+`openSection` is a single string, so opening a second editor closes the first.
+That is why `openEditor` asks before opening over another section's unsaved
+work -- `sectionOpened` empties the drafts, and without the prompt a second
+click discards typing with no undo.
 
 ## API URL resolution
 
@@ -106,6 +127,13 @@ against a remote API will not work until that key is renamed.
 
 nginx proxies `/api/` → `http://personal-site-py:5000/`, so the frontend and
 backend are same-origin in production and CORS is not exercised.
+
+`location /api/` wraps that proxy in `limit_except GET HEAD { deny all; }`, so
+**the public API is read-only by proof rather than by convention** — no non-GET
+method reaches Flask from the internet regardless of any application bug. The
+planned admin vhost is a separate `server` block on a port that is never
+published through Nginx Proxy Manager, and does not carry that restriction. Do
+not relax this block to make writes work.
 
 That hostname resolves because both containers share the `zurbnet` Docker
 network, declared `external: true` in both repos' `docker-compose.yml` and
@@ -198,17 +226,22 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 - `DISABLE_ESLINT_PLUGIN=true` in the build script, so lint errors will not
   fail a build.
 - CRA 5 / React 17 are both unmaintained.
-- CRA boilerplate not yet replaced: `manifest.json` name, the
-  `<meta name="description">`, and `App.test.js` (which asserts "learn react"
-  and fails).
+- CRA boilerplate is replaced: `manifest.json`, the `<meta
+  name="description">` and `App.test.js` were all rewritten. (An earlier
+  version of this file listed them as outstanding.)
 
 ## Tests
 
-`npm test` runs 57 cases across 5 suites. They cover the two places this app
+`npm test` runs 152 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
-structure of the page (landmarks, one `h1`, heading nesting, list semantics,
-the star rating's text alternative) — a property that spans nine component
-files and that no single component test can protect.
+structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
+a property that spans nine component files and that no single component test
+can protect.
+
+The star rating's text alternative is NOT asserted in `site/index.test.js`,
+despite what an earlier version of this file said. It lives in
+`src/components/abilityitem/index.test.js` along with the shape-not-colour,
+string-coercion and clamping assertions — verified by grep, not assumed.
 
 `package.json` maps `^axios$` to `axios/dist/node/axios.cjs`; axios 1.x is ESM
 and CRA's Jest does not transform `node_modules`, so without the mapping the
@@ -266,7 +299,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 40 tests, 5 suites
+npm test      # 152 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.
