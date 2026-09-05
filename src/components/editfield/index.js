@@ -10,6 +10,19 @@ import "./index.scss";
 // `font: inherit` in the stylesheet is the point of the whole component -- the
 // glyphs do not move when the mode flips, because family, size, weight and
 // line-height all arrive from the paragraph this replaced.
+//
+// THE WRAPPER IS LOAD-BEARING, not decoration. A textarea contributes nothing
+// to intrinsic width: `width: 100%` is a percentage, and percentages do not
+// participate in max-content sizing. .container is a shrink-to-fit flex item,
+// so with a bare textarea inside it the whole band collapsed -- measured at
+// 1170px -> 759px, taking the three profile columns from 267px to 132px each.
+// The paragraph it replaced had text, and text has an intrinsic width.
+//
+// So the wrapper is a 1x1 grid carrying the same string in a hidden ::after.
+// The pseudo element gives the wrapper real intrinsic width AND height; the
+// textarea sits in the same grid cell and overlays it. The band keeps its
+// width, and the field grows with its content instead of being pinned to a
+// fixed row count.
 const Editfield = ({
   id,
   labelledBy,
@@ -20,7 +33,6 @@ const Editfield = ({
   onCancel,
   readOnly = false,
   describedBy,
-  rows = 8,
   // Mirrors MAX_FIELD_LENGTH in personal-site-py/server.py. Duplicated on
   // purpose: the server is still the authority and still answers
   // validation_failed; this only saves a round trip that could not succeed.
@@ -54,27 +66,34 @@ const Editfield = ({
     }
   };
 
+  const text = value ?? "";
+
   return (
-    <textarea
-      ref={field}
-      id={id}
-      className="editfield"
-      value={value ?? ""}
-      rows={rows}
-      maxLength={maxLength}
-      // readOnly, never disabled, for the length of a save. A disabled control
-      // is blurred by the browser and dropped from the tab order, so going
-      // disabled mid-request would throw a keyboard user out of the field they
-      // are typing in. readOnly blocks typing without moving the caret.
-      readOnly={readOnly}
-      // Named by the sub-heading that already sits above it (#aboutmeTitle), so
-      // edit mode introduces no new id and cannot collide with one.
-      aria-labelledby={labelledBy}
-      aria-label={labelledBy ? undefined : label}
-      aria-describedby={describedBy}
-      onChange={(event) => onChange && onChange(event.target.value)}
-      onKeyDown={handleKeyDown}
-    />
+    // The trailing space in data-value matters: without it a value ending in a
+    // newline measures one line short, and the field jumps as you press Enter
+    // at the end.
+    <div className="editfieldwrap" data-value={text + " "}>
+      <textarea
+        ref={field}
+        id={id}
+        className="editfield"
+        value={text}
+        maxLength={maxLength}
+        // readOnly, never disabled, for the length of a save. A disabled
+        // control is blurred by the browser and dropped from the tab order, so
+        // going disabled mid-request would throw a keyboard user out of the
+        // field they are typing in. readOnly blocks typing without moving the
+        // caret.
+        readOnly={readOnly}
+        // Named by the sub-heading that already sits above it (#aboutmeTitle),
+        // so edit mode introduces no new id and cannot collide with one.
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : label}
+        aria-describedby={describedBy}
+        onChange={(event) => onChange && onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+    </div>
   );
 };
 export default Editfield;

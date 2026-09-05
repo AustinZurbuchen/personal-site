@@ -4,14 +4,47 @@
 // .collapsedtext's 18px line-height. Colour and letter-spacing are NOT part of
 // the font shorthand and are inherited by hand; left alone a textarea renders
 // in the UA's sans default in UA black and breaks the column it sits inside.
+// The wrapper is what gives the field a size. A textarea contributes nothing
+// to intrinsic width -- `width: 100%` is a percentage, and percentages do not
+// participate in max-content sizing -- and .container is a shrink-to-fit flex
+// item, so a bare textarea collapsed the whole band from 1170px to 759px.
+//
+// This is a 1x1 grid. The ::after carries the same string, invisibly, and gives
+// the grid a real intrinsic width AND height; the textarea occupies the same
+// cell on top of it. Both must therefore be typeset IDENTICALLY, or the field
+// will be the wrong size for its own text -- hence the repeated font, padding
+// and border below, and box-sizing on both.
+.editfieldwrap {
+  display: grid;
+}
+
+.editfieldwrap::after {
+  content: attr(data-value) " ";
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  visibility: hidden;
+  grid-area: 1 / 1;
+
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 8px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
 .editfield {
   font: inherit;
   color: inherit;
   letter-spacing: inherit;
 
+  grid-area: 1 / 1;
   display: block;
   width: 100%;
   margin: 0;
+  // No scrollbar and no drag handle: the wrapper already grows with the text,
+  // so there is nothing to scroll to and nothing a manual resize would fix.
+  overflow: hidden;
+  resize: none;
   // The one thing that does move: 8px of inset and a 1px rule, because a field
   // indistinguishable from a paragraph is not obviously editable. The
   // constraint was that the TYPE does not jump, and it does not.
@@ -19,7 +52,6 @@
   background-color: #ffffff;
   border: 1px solid #727878;
   border-radius: 0;
-  resize: vertical;
   // Scoped to this element only. src/index.scss deliberately has no border-box
   // reset -- it would collapse .container's approved 1170px border box to
   // 810px -- so this stays here, where width:100% plus padding would otherwise
