@@ -1,0 +1,52 @@
+// Edit mode's whole visual vocabulary, and it is borrowed rather than invented.
+// The button is components/loaderror/'s "Try again" (Courier, 18px, #434242 on
+// nothing, a 1px #727878 rule, 44px tall). No colour here is new.
+//
+// The bar rules that used to sit below (.editbar, .editstatus, .editerror) moved
+// to components/editbar/index.scss when the bar became its own component. They
+// were never redeclared -- redeclaring is how .container ended up defined three
+// times -- and every section now reuses that component rather than the class
+// names directly.
+
+.editcontrol {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  line-height: 1;
+  // #434242, the body token: 9.28:1 on the profile band, 8.70:1 on experiences,
+  // 10.02:1 on white. #727878 was considered and rejected -- it is 4.19:1 on
+  // #fff6db, which is why it is a rule colour in this system and not a text
+  // colour.
+  color: #434242;
+  background: none;
+  border: 1px solid #727878;
+  border-radius: 0;
+  padding: 10px 20px;
+  // 44px minimum touch target, as on loaderror's retry.
+  min-height: 44px;
+  cursor: pointer;
+}
+
+// See index.js: aria-disabled, not the disabled attribute, so focus is never
+// yanked out from under a keyboard user mid-save.
+.editcontrol[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+// For the dark admin bar and the footer band, which borrow the footer's
+// already-measured #dfe0e0-on-#444242 pair (7.55:1). Both the label and the
+// border move: #727878 on #444242 is 2.22:1, under the 3:1 bar a control's own
+// edge has to clear.
+.editcontroldark {
+  color: #dfe0e0;
+  border-color: #dfe0e0;
+}
+
+// The site has exactly two breakpoints and this adds none. The controls only
+// need to stop being the widest thing in a 320px column.
+@media (max-width: 768px) {
+  .editcontrol {
+    font-size: 16px;
+    padding: 10px 14px;
+  }
+}

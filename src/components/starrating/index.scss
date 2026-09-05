@@ -1,0 +1,45 @@
+// The buttons have to look exactly like the glyphs they replace, because the
+// row must not jump when the mode flips. Everything here is a UA reset plus the
+// two colours generateStars already uses.
+//
+// .stars keeps its own layout rule in abilityitem/index.scss; .starsediting only
+// adds what a button needs.
+.starbutton {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  // A touch target, without moving the glyph: the padding is horizontal only,
+  // so five stars still read as one block rather than five controls.
+  padding: 0 2px;
+  font: inherit;
+  line-height: inherit;
+  color: #dfe0e0;
+  cursor: pointer;
+}
+
+// Filled runs 1..selected, which is NOT the same set as aria-checked (that is
+// the single selected star). Same #46a4a0 generateStars uses, so read and edit
+// mode are the same teal -- and the shape still differs (U+2605 vs U+2606),
+// because #46a4a0 on #dfe0e0 is 2.24:1 and the state cannot rest on colour.
+.starbuttonfilled {
+  color: #46a4a0;
+}
+
+// A save in flight. Matches Editcontrol's dimming rather than inventing a
+// second convention.
+.starbutton[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+// The global focus ring is #434242 at 2px, which is right on the white
+// Abilities band. Called out rather than left implicit because the glyph is the
+// only thing painted here -- without a visible ring the group is operable by
+// keyboard and invisible while being operated.
+.starbutton:focus-visible {
+  outline: 2px solid #434242;
+  outline-offset: 1px;
+}

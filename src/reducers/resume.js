@@ -42,6 +42,22 @@ export const resumeSlice = createSlice({
     name: 'resume',
     initialState: {
         value: emptyResume,
+        // False until a real payload has been merged. Set by `update` and by
+        // nothing else, so it is the only honest answer to "is what is on
+        // screen the database, or the skeleton?".
+        //
+        // The edit UI hangs on it. An editor opened over the skeleton would be
+        // an editor over empty strings, and one Save would write those empties
+        // over the real resume. App.js's status machine also refuses to render
+        // <Site /> before then, but the write path must not inherit its safety
+        // from a rendering decision -- that exact gate has been wrong once
+        // already (see the comment in App.js about `resume?.profile`, which was
+        // truthy on the first render and painted the blank skeleton). A gate
+        // that protects the database lives in the store the write path reads.
+        //
+        // Safe against src/reducers/resume.test.js, which only ever reads
+        // `.value` off the result and never deep-equals the slice object.
+        loaded: false,
     },
     reducers: {
         update: (state, action) => {
@@ -55,6 +71,7 @@ export const resumeSlice = createSlice({
                 quotes: withQuoteSlots(payload.quotes),
                 links: { ...emptyResume.links, ...(payload.links || {}) },
             };
+            state.loaded = true;
         },
     },
 })

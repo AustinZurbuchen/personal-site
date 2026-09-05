@@ -1,0 +1,67 @@
+// Moved here from editcontrol/index.scss when the bar became its own component.
+// Same three rules, unchanged values -- the note that stage 4's sections must
+// REUSE these class names rather than redeclare them still stands, and now they
+// reuse the component instead. All three were grepped against
+// `grep -rn "^\.[a-zA-Z]" --include="*.scss" src/` and collide with nothing.
+//
+// No colour here is new: #434242 is the body token and #727878 is the same 1px
+// rule that separates the bands. There is NO RED, because the palette has none;
+// the severity lives in the words.
+//
+// These three are the LIGHT-band styling. The footer overrides all of them --
+// #434242 on #444242 is 1.00:1, i.e. literally invisible -- in
+// components/footer/index.scss.
+
+.editbar {
+  // width:100% inside .container, which is a centred flex column -- the same
+  // thing .info already does to span the band.
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.editstatus {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  color: #434242;
+  margin: 0;
+  // Pins the status to the left of a flex-end row without a second container.
+  margin-right: auto;
+  text-align: left;
+}
+
+// The save-failure band, following loaderror's reasoning exactly: #434242 text
+// and a 1px #727878 rule rather than the heading teal, because an error should
+// not change meaning with the band colour it happens to land on.
+.editerror {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  line-height: 28px;
+  color: #434242;
+  background: none;
+  border: 1px solid #727878;
+  margin: 12px 0 0;
+  padding: 12px;
+  text-align: left;
+}
+
+// The site has exactly two breakpoints and this adds none. At 768px the bar
+// already wraps on its own; the controls only need to stop being the widest
+// thing in a 320px column.
+@media (max-width: 768px) {
+  .editbar {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .editstatus,
+  .editerror {
+    font-size: 16px;
+  }
+}

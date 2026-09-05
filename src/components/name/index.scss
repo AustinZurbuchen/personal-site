@@ -56,21 +56,6 @@
   opacity: 1;
 }
 
-.edit-button-top-right {
-  position: absolute !important;
-  top: max(16px, env(safe-area-inset-top));
-  right: 16px;
-  z-index: 1000;
-  min-height: 44px;
-  min-width: 44px;
-}
-
-// Longhand, and hover only — the shorthand wiped MUI's contained-button
-// background, and focus is handled by the global :focus-visible ring.
-.edit-button-top-right:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
 @media (max-width: 768px) {
   .nameContainer {
     padding-left: 20px;

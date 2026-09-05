@@ -1,0 +1,62 @@
+// Lives inside .adminpanel, which is #444242 with #dfe0e0 text (7.55:1). These
+// rules only add layout and the one dimmer tone; every colour is already in the
+// palette.
+//
+// Names grepped against `grep -rn "^\.[a-zA-Z]" --include="*.scss" src/` before
+// use: .backuplist, .backuprow, .backupwhen and .backuppaths collide with
+// nothing.
+.backuplist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  // Fifty generations would otherwise push Sign out off the bottom of a laptop
+  // screen. The panel is already capped at 320px wide; this caps its height and
+  // scrolls the list rather than the page.
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.backuprow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  // A rule between generations rather than a border box each -- fifty boxes in
+  // a 320px panel reads as noise.
+  border-top: 1px solid rgba(223, 224, 224, 0.35);
+  padding-top: 6px;
+}
+
+.backuprow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.backupwhen {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  color: #dfe0e0;
+}
+
+// The same #dfe0e0, NOT a dimmer tone, and that is a measured decision rather
+// than a stylistic one.
+//
+// Dimming the secondary line was the obvious move and #9a9a94 the obvious
+// colour -- it is already in this file's neighbour as the field placeholder.
+// Measured, it is 3.53:1 on #444242 and fails the 4.5:1 bar for 12px text. It
+// passes where it is currently used (4.79:1 on the #2f2e2e field ground); the
+// lighter panel is what breaks it. The shallowest grey that would clear the bar
+// here is around #b0b0aa at 4.58:1, and inventing a palette colour to dim one
+// line of an admin list is not a trade worth making.
+//
+// So the hierarchy comes from structure instead: the timestamp leads each row,
+// the paths sit under it, and a 1px rule separates generations.
+.backuppaths {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #dfe0e0;
+  overflow-wrap: anywhere;
+}
