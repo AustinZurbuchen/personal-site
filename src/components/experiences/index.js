@@ -29,6 +29,19 @@ const CELLS = [
   { key: "body", id: "body", label: "description" },
 ];
 
+// The three keys a WORK row carries and never shows: what sort_work_items
+// orders on. Offered only for rows that already have them, so a school row --
+// whose schema is the four above and nothing else -- cannot grow a key
+// LIST_SCHEMAS would refuse as "unexpected".
+//
+// isCurrent is separate because it is a boolean, and the document stores it as
+// one. LIST_SCHEMAS refuses an int for it on purpose.
+const SORT_CELLS = [
+  { key: "startDate", id: "startDate" },
+  { key: "endDate", id: "endDate" },
+];
+const FLAG_CELL = { key: "isCurrent", id: "isCurrent" };
+
 function Experiences() {
   const resume = useSelector((state) => state.resume.value);
 
@@ -70,19 +83,38 @@ function Experiences() {
           onSubmit: editor.save,
           onCancel: editor.closeEditor,
         };
+        const setKey = (key, value) =>
+          write(rows.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
+
         CELLS.forEach((cell) => {
           props[cell.key] = {
             id: prefix + "-" + index + "-" + cell.id + "Edit",
             label: label + " " + (index + 1) + " " + cell.label,
             value: row[cell.key],
-            onChange: (value) =>
-              write(
-                rows.map((r, i) =>
-                  i === index ? { ...r, [cell.key]: value } : r
-                )
-              ),
+            onChange: (value) => setKey(cell.key, value),
           };
         });
+
+        // Gated on the ROW, not on the path: a row is offered these only if it
+        // already carries them, which is the same question LIST_SCHEMAS asks.
+        // Keying off `path === WORK` instead would let a school row grow keys
+        // the server would then refuse as unexpected.
+        if (Object.prototype.hasOwnProperty.call(row, FLAG_CELL.key)) {
+          SORT_CELLS.forEach((cell) => {
+            props[cell.key] = {
+              id: prefix + "-" + index + "-" + cell.id + "Edit",
+              value: row[cell.key],
+              onChange: (value) => setKey(cell.key, value),
+            };
+          });
+          props[FLAG_CELL.key] = {
+            id: prefix + "-" + index + "-" + FLAG_CELL.id + "Edit",
+            value: row[FLAG_CELL.key],
+            // Boolean straight through, never String(): the schema requires a
+            // real bool and refuses anything else.
+            onChange: (value) => setKey(FLAG_CELL.key, Boolean(value)),
+          };
+        }
         return props;
       },
     };

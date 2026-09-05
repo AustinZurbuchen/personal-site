@@ -53,3 +53,59 @@
     margin-top: 8px;
   }
 }
+
+// The three keys a work row sorts on and never shows. Edit mode only, so read
+// mode is untouched. Every colour is already in the palette: #434242 body text
+// on the #f3efe0 band is 8.70:1, and #727878 is the same 1px rule that
+// separates the bands.
+.sortkeys {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #727878;
+}
+
+// A <p>, not a heading: site/index.test.js walks heading levels, and an <h5>
+// here would be fine today and wrong the moment the h4 above it moves.
+.sortkeynote {
+  margin: 0;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #434242;
+}
+
+.sortkey {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sortkeylabel {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  color: #434242;
+}
+
+// The label wraps the checkbox, so the text is part of the hit area rather
+// than a separate 14px target beside a 13px box.
+.sortkeycurrent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  color: #434242;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.sortkeycurrent input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}

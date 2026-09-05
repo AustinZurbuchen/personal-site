@@ -2204,3 +2204,184 @@ describe("edit flow: the save history", () => {
     expect(row.querySelector("time").getAttribute("datetime")).toBeNull();
   });
 });
+
+// ===========================================================================
+// The three keys a work row sorts on and never shows. Before these were
+// editable the visible dateLabel could say one thing while the row sorted by
+// another, with no way to see the disagreement short of opening Atlas -- and a
+// work row could not be ADDED at all, because LIST_SCHEMAS requires all seven
+// keys and only four had controls.
+// ===========================================================================
+describe("edit flow: a work row's hidden sort keys", () => {
+  const signedInApp = async (fixture) => {
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
+    const utils = renderApp();
+    await wait(() => {
+      expect(utils.container.querySelector("h1")).not.toBeNull();
+    });
+    return utils;
+  };
+
+  const openExperiences = (container) =>
+    fireEvent.click(control(container, "Edit", "Experiences"));
+
+  const at = (container, list, i, key) =>
+    container.querySelector("#experiences-" + list + "-" + i + "-" + key + "Edit");
+
+  const workFixture = () => {
+    const f = resumeFixture();
+    f.experiences.work[0].startDate = "2021-05";
+    f.experiences.work[0].endDate = "2022-07";
+    f.experiences.work[0].isCurrent = false;
+    f.experiences.work[1].startDate = "2018-07";
+    f.experiences.work[1].endDate = "2020-01";
+    f.experiences.work[1].isCurrent = false;
+    return f;
+  };
+
+  it("offers them on work rows and never on school rows", async () => {
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+
+    expect(at(container, "work", 0, "startDate")).not.toBeNull();
+    expect(at(container, "work", 0, "endDate")).not.toBeNull();
+    expect(at(container, "work", 0, "isCurrent")).not.toBeNull();
+
+    // A school row's schema is four keys and nothing else. Growing one of these
+    // would make the whole list unsavable, with the server naming a key the
+    // operator never asked for.
+    expect(at(container, "school", 0, "startDate")).toBeNull();
+    expect(at(container, "school", 0, "endDate")).toBeNull();
+    expect(at(container, "school", 0, "isCurrent")).toBeNull();
+  });
+
+  it("is a real checkbox carrying the stored boolean", async () => {
+    const fixture = workFixture();
+    fixture.experiences.work[0].isCurrent = true;
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+
+    const box = at(container, "work", 0, "isCurrent");
+    expect(box.type).toBe("checkbox");
+    expect(box.checked).toBe(true);
+    expect(at(container, "work", 1, "isCurrent").checked).toBe(false);
+  });
+
+  it("names the date fields by their visible label, not an aria-label", async () => {
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+
+    const start = at(container, "work", 0, "startDate");
+    const labelId = start.getAttribute("aria-labelledby");
+    expect(labelId).toBeTruthy();
+    // These hold "2022-07" in a box that explains nothing otherwise -- least of
+    // all on a new row, where it is empty. The visible text and the accessible
+    // name are the same string by construction.
+    expect(container.querySelector("#" + labelId).textContent).toMatch(/Start/);
+    expect(start.getAttribute("aria-label")).toBeNull();
+  });
+
+  it("sends the boolean as a boolean, never as a string", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+    fireEvent.click(at(container, "work", 0, "isCurrent"));
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    const sent = body.updates["experiences.work"][0];
+    // LIST_SCHEMAS refuses an int for this, because sort_work_items branches on
+    // truthiness and a stray 1 works right up until someone stores "0".
+    expect(sent.isCurrent).toBe(true);
+    expect(typeof sent.isCurrent).toBe("boolean");
+  });
+
+  it("saves an edited sort key alongside the label it belongs to", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+    fireEvent.change(at(container, "work", 0, "startDate"), {
+      target: { value: "2021-06" },
+    });
+    fireEvent.change(at(container, "work", 0, "dateLabel"), {
+      target: { value: "June 2021 - July 2022" },
+    });
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const sent = axios.put.mock.calls[0][1].updates["experiences.work"][0];
+    // The whole point: the label and the key it sorts by can now be corrected
+    // together, in one place.
+    expect(sent.startDate).toBe("2021-06");
+    expect(sent.dateLabel).toBe("June 2021 - July 2022");
+    expect(sent.endDate).toBe("2022-07");
+  });
+
+  it("adds no heading while showing them", async () => {
+    const { container } = await signedInApp(workFixture());
+    const headings = () => container.querySelectorAll("h1,h2,h3,h4,h5,h6").length;
+    const before = headings();
+
+    openExperiences(container);
+
+    // The "sort order only" note is a <p>. An <h5> would be valid today and
+    // wrong the moment the <h4> above it changes level.
+    expect(headings()).toBe(before);
+    expect(container.querySelector(".sortkeynote").tagName).toBe("P");
+  });
+});
+
+// The convention Editcontrol states, applied to the one non-button control:
+// aria-disabled and a guarded handler, never the disabled attribute.
+describe("edit flow: the current-role checkbox during a save", () => {
+  it("stays focusable while a save is in flight", async () => {
+    enableAdminUi();
+    seedStoredSession();
+    const fixture = resumeFixture();
+    fixture.experiences.work[0].startDate = "2021-05";
+    fixture.experiences.work[0].endDate = "2022-07";
+    fixture.experiences.work[0].isCurrent = false;
+    axios.get.mockResolvedValue({ data: fixture });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1")).not.toBeNull();
+    });
+
+    // A save that never settles, so the in-flight state stays observable.
+    axios.put.mockImplementation(() => new Promise(() => {}));
+
+    fireEvent.click(control(container, "Edit", "Experiences"));
+    fireEvent.change(
+      container.querySelector("#experiences-work-0-dateLabelEdit"),
+      { target: { value: "changed" } }
+    );
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    const box = container.querySelector("#experiences-work-0-isCurrentEdit");
+    await wait(() => {
+      expect(box.getAttribute("aria-disabled")).toBe("true");
+    });
+    // A disabled control is blurred and dropped from the tab order, which would
+    // throw a keyboard user out of the row mid-save.
+    expect(box.disabled).toBe(false);
+
+    // And it still refuses the change.
+    const before = box.checked;
+    fireEvent.click(box);
+    expect(container.querySelector("#experiences-work-0-isCurrentEdit").checked).toBe(before);
+  });
+});
