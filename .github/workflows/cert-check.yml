@@ -1,6 +1,24 @@
 # .github/workflows/cert-check.yml
 #
-# Watches the TLS certificate for austinzurbuchen.com from OUTSIDE the house.
+# Watches austinzurbuchen.com from OUTSIDE the house. Two things live here, and
+# they share one property: NOTHING RUNNING ON THE NAS CAN DETECT EITHER OF THEM.
+#
+#   1. The TLS certificate and the DNS its renewal depends on (the original
+#      reason for this file — see below).
+#   2. Whether the API container is running the commit master says it should.
+#
+# The second was added after three incidents in one day where a container was
+# serving code nobody thought it was: the NAS pulled the site image from Docker
+# Hub while CI published to GHCR, and later the API sat on a stale image through
+# four site deploys. The first sign of that one was a save failing with "not a
+# writable field" for a path the running code did not have. Every response the
+# API gives is byte-identical across builds, so from outside a stale container
+# is indistinguishable from a fresh one -- which is exactly the shape of problem
+# this file already exists to catch.
+#
+# The name is now narrower than the contents. Kept anyway: renaming it changes
+# the workflow's identity in the Actions UI and in every existing run history,
+# for no gain.
 #
 # WHY THIS EXISTS
 #   Aug 2026: the cert covered austinzurbuchen.com + resume.austinzurbuchen.com.
@@ -62,6 +80,10 @@ env:
   WARN_DAYS: '25'   # LE renews at ~30d. 25 => renewal has already failed, and
   CRIT_DAYS: '10'   # it never fires on a healthy renewal cycle.
   UNKNOWN_RUNS_BEFORE_ALERT: '4'   # ~2 days of "site unreachable" before paging
+  # The repo whose master HEAD the deployed API is compared against. Its
+  # Dockerfile bakes the commit in as GIT_SHA and GET /api/version reports it.
+  API_REPO: 'personal-site-py'
+  API_VERSION_PATH: '/api/version'
   LC_ALL: C
   TZ: UTC
 
@@ -75,7 +97,7 @@ jobs:
       - name: Preflight — tools must exist, or say so loudly
         run: |
           set -Eeuo pipefail
-          for t in openssl curl git gh timeout; do
+          for t in openssl curl git gh timeout jq; do
             command -v "$t" >/dev/null || { echo "::error::$t is missing from the runner"; exit 1; }
           done
           if ! command -v dig >/dev/null; then
@@ -86,6 +108,10 @@ jobs:
 
       - name: Check
         id: check
+        env:
+          # For the `gh api` lookup of the API repo's master HEAD. Read-only and
+          # scoped to this repository's token, which is enough for a public repo.
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
 
@@ -264,6 +290,42 @@ jobs:
               fi
             fi
           done
+
+          # ---------- is the API running the commit master says it should -------
+          # Only when the site answered at all: with no TLS handshake the API is
+          # unreachable for the same reason, and reporting it twice would turn
+          # one outage into two alarms with two fingerprints.
+          if [ "$got_cert" -eq 1 ]; then
+            API_BODY="$(curl -sS --max-time 20 --retry 2 --retry-delay 5 \
+                        "https://$HOST$API_VERSION_PATH" 2>/dev/null || true)"
+            # Parsed with jq, not a regex: the body is small but "sha" also
+            # appears in error payloads, and a sed that matched the wrong one
+            # would compare two unrelated strings and alarm every run.
+            API_SHA="$(printf '%s' "$API_BODY" | jq -r '.sha // empty' 2>/dev/null || true)"
+
+            if [ -z "$API_SHA" ]; then
+              # A 404 here means the running build predates GET /version, which
+              # is itself a stale deploy -- just one that cannot say so.
+              fail 1 api-no-version "GET https://$HOST$API_VERSION_PATH returned nothing usable. Either the API is down (the site is up, so this is not a general outage), nginx has stopped proxying /api/, or the container predates the /version route -- which would itself mean a deploy never landed. Body was: $(printf '%s' "${API_BODY:-<empty>}" | head -c 200)"
+            elif [ "$API_SHA" = "unknown" ]; then
+              fail 1 api-sha-unknown "The API reports its build as \"unknown\", meaning the image was built without the GIT_SHA build-arg. The container is running SOMETHING, but this monitor can no longer tell you what -- check that .github/workflows/publish.yml in $API_REPO still passes build-args."
+            else
+              # gh, not a bare curl: the API repo is public, but an
+              # unauthenticated call shares a 60/hour IP budget with every other
+              # runner and would fail intermittently for no reason.
+              WANT_SHA="$(gh api "repos/${{ github.repository_owner }}/$API_REPO/commits/master" --jq '.sha' 2>/dev/null || true)"
+              if [ -z "$WANT_SHA" ]; then
+                # GitHub being unreachable is not a deployment problem. Recorded
+                # so a permanently-broken lookup is visible in the run log,
+                # never alarmed on.
+                ok "API reports ${API_SHA:0:7}; could not read $API_REPO master HEAD to compare (GitHub API unavailable) -- not treated as drift"
+              elif [ "$API_SHA" = "$WANT_SHA" ]; then
+                ok "API build matches $API_REPO master: ${API_SHA:0:7}"
+              else
+                fail 1 api-stale "The API container is running ${API_SHA:0:7} but $API_REPO master is ${WANT_SHA:0:7}. A published image was never pulled, so the running code is not the code you think it is. This has happened twice: once because the container pulled from Docker Hub while CI published to GHCR (check the Repository field in Unraid), and once because Force Update was run on the wrong container. Fix: docker pull ghcr.io/${{ github.repository_owner }}/$API_REPO:latest, then Force Update $API_REPO in Unraid."
+              fi
+            fi
+          fi
 
           # ---------- record the apex address (diagnosis, not an alarm) ----------
           IP="$(dig +short A "$HOST" $DIGNS 2>/dev/null | grep -E '^[0-9.]+$' | tail -1 || true)"
