@@ -32,6 +32,10 @@ export const useQuoteEditor = (section, index, name, extraFields) => {
     const editProps = editor.editing
         ? {
               editing: true,
+              // The quote itself, never the attribution and never a contact
+              // link below it -- before this was opt-in the footer put the
+              // caret in the GitHub URL, because it mounted last.
+              takeFocus: true,
               // Properties of the section's save, not of one field.
               readOnly: editor.saving,
               describedBy: editor.describedBy,

@@ -33,6 +33,9 @@ const Editfield = ({
   onCancel,
   readOnly = false,
   describedBy,
+  // Named takeFocus rather than autoFocus so it cannot be mistaken for the DOM
+  // attribute of that name, which React would also honour.
+  takeFocus = false,
   // Mirrors MAX_FIELD_LENGTH in personal-site-py/server.py. Duplicated on
   // purpose: the server is still the authority and still answers
   // validation_failed; this only saves a round trip that could not succeed.
@@ -43,7 +46,15 @@ const Editfield = ({
   // Focus follows the mode change, with the caret at the END -- not a
   // select-all, so the first keystroke appends rather than silently replacing
   // the whole paragraph.
+  //
+  // OPT-IN, and it did not used to be. Every mounted field called focus(), so
+  // with more than one field open the LAST one in document order won by simply
+  // running last -- which is why opening the footer editor put the caret in the
+  // GitHub URL rather than the quote. Harmless with one field, arbitrary with
+  // five, and actively hostile with a list editor that mounts four fields per
+  // row. The section now names the one field worth landing in.
   useEffect(() => {
+    if (!takeFocus) return;
     const node = field.current;
     if (!node) return;
     node.focus();
@@ -51,7 +62,7 @@ const Editfield = ({
     if (typeof node.setSelectionRange === "function") {
       node.setSelectionRange(end, end);
     }
-  }, []);
+  }, [takeFocus]);
 
   const handleKeyDown = (event) => {
     if (event.key === "Escape" && onCancel) {

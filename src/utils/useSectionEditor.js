@@ -28,6 +28,44 @@ import { isAdminUi } from './env';
 // heading walk. A wrapper would have had to render nothing at all to be safe,
 // which is what a hook is.
 
+// Value equality, deep enough for what a draft can hold: a string, or a list of
+// flat rows whose values are strings and bools.
+//
+// THIS IS A SAFETY CHECK, NOT A TIDINESS ONE. Dirtiness used to be `!==`, which
+// is reference identity. That is exactly right for a string and exactly wrong
+// for an array: a draft list is never === the store's list, so the moment a
+// list draft exists it reads as dirty for ever. Save lights up with nothing
+// typed, every section switch asks to discard, and -- the part that matters --
+// gate 4 of the "Save blanked my resume" defence stops holding. That gate is
+// "a draft only exists for a path the user typed into, and dirty compares it
+// against the store". A list editor has to SEED a draft to have something to
+// mutate, so under `!==` a seeded copy of the un-hydrated skeleton's empty list
+// would be dirty, and one Save would PUT [] over the live section.
+//
+// Written out rather than pulled from a library: the shapes are known and
+// small, and the app ships no deep-equal dependency.
+export const sameValue = (a, b) => {
+    if (a === b) return true;
+
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        if (a.length !== b.length) return false;
+        return a.every((item, i) => sameValue(item, b[i]));
+    }
+
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+        const keys = Object.keys(a);
+        if (keys.length !== Object.keys(b).length) return false;
+        return keys.every(
+            (key) =>
+                Object.prototype.hasOwnProperty.call(b, key) &&
+                sameValue(a[key], b[key])
+        );
+    }
+
+    return false;
+};
+
 // Dotted-path reader for the API's own allowlist paths. Array indices work
 // without a special case: 'quotes.0.quote' splits to ['quotes','0','quote'] and
 // array['0'] is array[0].
@@ -88,7 +126,7 @@ export const useSectionEditor = (section, fields) => {
     // saveSucceeded empties the drafts, every path falls back to the store, and
     // the section goes quiet with no "mark clean" step to forget.
     const dirtyPaths = fields.filter(
-        (path) => path in drafts && drafts[path] !== readPath(resume, path)
+        (path) => path in drafts && !sameValue(drafts[path], readPath(resume, path))
     );
     const dirty = dirtyPaths.length > 0;
 
@@ -97,7 +135,7 @@ export const useSectionEditor = (section, fields) => {
     // Deliberately section-agnostic: it needs no register of which sections
     // exist, and a section added later is covered without editing this line.
     const anyDirty = Object.keys(drafts).some(
-        (path) => drafts[path] !== readPath(resume, path)
+        (path) => !sameValue(drafts[path], readPath(resume, path))
     );
 
     // One id per section, unique by construction, and present only in admin

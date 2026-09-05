@@ -31,6 +31,7 @@ const Aboutme = ({ title, body, edit }) => {
             onCancel={edit.onCancel}
             readOnly={edit.readOnly}
             describedBy={edit.describedBy}
+            takeFocus={edit.takeFocus}
           ></Editfield>
         ) : (
           body

@@ -56,6 +56,8 @@ const Titles = ({ title, subtitle, by, id, edit }) => {
             label={edit.subtitle.label}
             value={edit.subtitle.value}
             onChange={edit.subtitle.onChange}
+            // The quote, never the attribution below it.
+            takeFocus={edit.takeFocus}
             {...shared}
           ></Editfield>
         ) : (

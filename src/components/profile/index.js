@@ -69,6 +69,9 @@ function Profile() {
           edit={
             shared && {
               ...shared,
+              // First editable field in document order, so the caret lands
+              // somewhere predictable rather than wherever mounted last.
+              takeFocus: true,
               subtitle: field(
                 SUBTITLE,
                 "profile-subtitleEdit",

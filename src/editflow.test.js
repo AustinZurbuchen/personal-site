@@ -6,6 +6,8 @@ import App from "./App";
 import Site from "./components/site/index";
 import { makeStore, renderWithStore } from "./test-utils/renderWithStore";
 import { resumeFixture } from "./test-utils/fixtures";
+import { sameValue, useSectionEditor } from "./utils/useSectionEditor";
+import { sectionOpened, draftChanged } from "./reducers/editMode";
 
 // The stage-2 edit flow, end to end: the admin flag paints the chrome, the
 // chrome exchanges a password for a token, the token unlocks one field, and the
@@ -1261,5 +1263,225 @@ describe("edit flow: editing the remaining profile fields", () => {
     expect(container.querySelectorAll("button")).toHaveLength(0);
     expect(container.querySelectorAll(".footer .links a")).toHaveLength(3);
     expect(container.querySelector(".details dl")).not.toBeNull();
+  });
+});
+
+// ===========================================================================
+// The two pieces of machinery stage 4's list editing rests on. Both were bugs
+// before a list needed them -- one latent, one visible in the footer.
+// ===========================================================================
+describe("edit flow: machinery a list editor depends on", () => {
+  const signedInApp = async () => {
+    enableAdminUi();
+    seedStoredSession();
+    return renderLoadedApp();
+  };
+
+  // A probe rather than a real section, because no UI holds an array draft yet
+  // -- the row editors are still to come. Without this, reverting the dirty
+  // check to `!==` leaves the whole suite green, which is exactly the state
+  // that lets a safety fix rot.
+  const ArrayDraftProbe = ({ path }) => {
+    const editor = useSectionEditor("probe", [path]);
+    return (
+      <div>
+        <span data-testid="dirty">{String(editor.dirty)}</span>
+        <span data-testid="status">{editor.status}</span>
+      </div>
+    );
+  };
+
+  describe("a list draft equal to the store is not dirty", () => {
+    const PATH = "abilities.languages";
+
+    const mountProbe = () => {
+      const fixture = resumeFixture();
+      const utils = renderWithStore(<ArrayDraftProbe path={PATH} />, {
+        resume: fixture,
+      });
+      return { ...utils, fixture };
+    };
+
+    it("stays clean when the draft is a structurally equal COPY", () => {
+      const { store, getByTestId, fixture } = mountProbe();
+
+      // Exactly what seeding a list editor does: copy the store's rows so
+      // there is something mutable to edit. A different object, same value.
+      const copy = fixture.abilities.languages.map((row) => ({ ...row }));
+      store.dispatch(sectionOpened("probe"));
+      store.dispatch(draftChanged({ path: PATH, value: copy }));
+
+      expect(getByTestId("dirty").textContent).toBe("false");
+      expect(getByTestId("status").textContent).toBe("");
+    });
+
+    it("goes dirty the moment a row actually changes", () => {
+      const { store, getByTestId, fixture } = mountProbe();
+
+      const changed = fixture.abilities.languages.map((row) => ({ ...row }));
+      changed[0].stars = "1";
+      store.dispatch(sectionOpened("probe"));
+      store.dispatch(draftChanged({ path: PATH, value: changed }));
+
+      expect(getByTestId("dirty").textContent).toBe("true");
+      expect(getByTestId("status").textContent).toBe("Unsaved changes");
+    });
+
+    it("does not call a seeded empty list over the skeleton dirty", () => {
+      // THE ONE THAT MATTERS. Over the un-hydrated skeleton every list is [].
+      // Under reference identity a seeded [] is a different object, so it reads
+      // as dirty -- and one Save would PUT an empty array over the live
+      // section. This is gate 4 of the "Save blanked my resume" defence.
+      const { store, getByTestId } = renderWithStore(
+        <ArrayDraftProbe path={PATH} />,
+        { resume: null }
+      );
+
+      store.dispatch(sectionOpened("probe"));
+      store.dispatch(draftChanged({ path: PATH, value: [] }));
+
+      expect(getByTestId("dirty").textContent).toBe("false");
+    });
+  });
+
+  // anyDirty is the OTHER caller of sameValue, and it drives the "Discard your
+  // unsaved changes?" prompt when you open a second section. It scans every
+  // draft, not just this section's fields, so it needs its own cover: a probe
+  // for one section while an untouched list draft sits under another.
+  const OpenerProbe = ({ section }) => {
+    const editor = useSectionEditor(section, ["profile.name"]);
+    return (
+      <button type="button" onClick={editor.openEditor}>
+        open {section}
+      </button>
+    );
+  };
+
+  describe("an untouched list draft does not trigger the discard prompt", () => {
+    it("opens a second section without asking", () => {
+      enableAdminUi();
+      seedStoredSession();
+      const fixture = resumeFixture();
+      const { store, getByText } = renderWithStore(<OpenerProbe section="b" />, {
+        resume: fixture,
+      });
+      const confirm = jest
+        .spyOn(window, "confirm")
+        .mockImplementation(() => false);
+      try {
+        // Section "a" is open and holds a SEEDED list draft nobody has touched.
+        store.dispatch(sectionOpened("a"));
+        store.dispatch(
+          draftChanged({
+            path: "abilities.languages",
+            value: fixture.abilities.languages.map((row) => ({ ...row })),
+          })
+        );
+
+        fireEvent.click(getByText("open b"));
+
+        // Under reference identity that seeded copy reads as unsaved work, and
+        // every section switch would nag -- which is how a real prompt gets
+        // dismissed reflexively.
+        expect(confirm).not.toHaveBeenCalled();
+        expect(store.getState().editMode.openSection).toBe("b");
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
+    it("still asks when the list draft really differs", () => {
+      enableAdminUi();
+      seedStoredSession();
+      const fixture = resumeFixture();
+      const { store, getByText } = renderWithStore(<OpenerProbe section="b" />, {
+        resume: fixture,
+      });
+      const confirm = jest
+        .spyOn(window, "confirm")
+        .mockImplementation(() => false);
+      try {
+        const changed = fixture.abilities.languages.map((row) => ({ ...row }));
+        changed[0].ability = "Something else";
+        store.dispatch(sectionOpened("a"));
+        store.dispatch(
+          draftChanged({ path: "abilities.languages", value: changed })
+        );
+
+        fireEvent.click(getByText("open b"));
+
+        expect(confirm).toHaveBeenCalled();
+        expect(store.getState().editMode.openSection).toBe("a");
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+  });
+
+  describe("value equality, not reference identity", () => {
+    it("calls two structurally equal lists the same value", () => {
+      const a = [{ ability: "Dart", stars: "3" }, { ability: "Go", stars: "5" }];
+      const b = [{ ability: "Dart", stars: "3" }, { ability: "Go", stars: "5" }];
+      expect(a).not.toBe(b);
+      expect(sameValue(a, b)).toBe(true);
+    });
+
+    it("sees a change in any row, at any depth", () => {
+      const a = [{ ability: "Dart", stars: "3" }];
+      expect(sameValue(a, [{ ability: "Dart", stars: "4" }])).toBe(false);
+      expect(sameValue(a, [{ ability: "Go", stars: "3" }])).toBe(false);
+      expect(sameValue(a, [{ ability: "Dart" }])).toBe(false);
+      expect(sameValue(a, [{ ability: "Dart", stars: "3" }, { ability: "Go" }])).toBe(
+        false
+      );
+      expect(sameValue(a, [])).toBe(false);
+    });
+
+    it("does not confuse an array with an object, or a bool with a string", () => {
+      expect(sameValue([], {})).toBe(false);
+      expect(sameValue({ isCurrent: true }, { isCurrent: "true" })).toBe(false);
+      expect(sameValue({ a: 1 }, { b: 1 })).toBe(false);
+      // A key present-but-undefined is not the same as absent.
+      expect(sameValue({ a: undefined }, {})).toBe(false);
+    });
+
+    it("still works for the scalars every existing field uses", () => {
+      expect(sameValue("same", "same")).toBe(true);
+      expect(sameValue("a", "b")).toBe(false);
+      expect(sameValue("", "")).toBe(true);
+    });
+  });
+
+  describe("one field takes focus, not whichever mounted last", () => {
+    it("lands in the quote when the footer editor opens, not the GitHub URL", async () => {
+      const { container } = await signedInApp();
+
+      fireEvent.click(control(container, "Edit", "Contact quote"));
+
+      // Before focus was opt-in every Editfield called focus() on mount, so
+      // the last one in document order won -- which in this band is the third
+      // contact link.
+      expect(document.activeElement.id).toBe("contact-quoteEdit");
+      expect(document.activeElement.id).not.toBe("contact-githubEdit");
+    });
+
+    it("lands in the first Profile field, not the last", async () => {
+      const { container } = await signedInApp();
+
+      fireEvent.click(control(container, "Edit", "Profile"));
+
+      expect(document.activeElement.id).toBe("profile-subtitleEdit");
+      expect(document.activeElement.id).not.toBe("profile-locationEdit");
+    });
+
+    it("puts the caret at the end rather than selecting the value", async () => {
+      const { container } = await signedInApp();
+
+      fireEvent.click(control(container, "Edit", "Contact quote"));
+
+      const field = container.querySelector("#contact-quoteEdit");
+      expect(field.selectionStart).toBe(field.value.length);
+      expect(field.selectionEnd).toBe(field.value.length);
+    });
   });
 });
