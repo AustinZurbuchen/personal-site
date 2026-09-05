@@ -96,6 +96,17 @@ token is deliberately NOT here -- it lives in sessionStorage, owned by
 `src/utils/adminSession.js`, so a DevTools state snapshot never contains a
 write credential.
 
+Rows can be ADDED and REMOVED in all four list sections. The server needed no
+change for it: `validate_list` takes any list of 1..`MAX_ROWS` and replaces the
+array, so row count was never the constraint. What the UI owes it is the two
+guards — the last row of a list cannot be removed, because an empty array is a
+section-wipe the server refuses outright, and `MAX_ROWS` is mirrored here so a
+control never produces a request that is certain to fail.
+
+A new work row carries all seven keys including `startDate` / `endDate` /
+`isCurrent`, which is why those became editable first: four keys are refused
+with "row N: missing endDate, isCurrent, startDate".
+
 Four sections are editable and between them cover every path the server
 allows: `profile` (subtitle, About Me, name, age, location), `experiences` and
 `abilities` (each a quote plus two whole lists of rows), and `contact` (a quote
@@ -244,7 +255,7 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 152 cases across 6 suites. They cover the two places this app
+`npm test` runs 173 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
 a property that spans nine component files and that no single component test
@@ -311,7 +322,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 152 tests, 6 suites
+npm test      # 173 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

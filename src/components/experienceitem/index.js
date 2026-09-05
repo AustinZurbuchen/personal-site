@@ -1,5 +1,6 @@
 import React from "react";
 import Editfield from "../editfield/index";
+import Editcontrol from "../editcontrol/index";
 import "./index.scss";
 
 // Still a leaf: props only, no store, no network. The Experiences section owns
@@ -110,6 +111,19 @@ const Experienceitem = ({ company, dateLabel, title, body, edit }) => {
       <div className="titlebody column">
         <p className="experiencetitle bold biggertext">{cell("title", title)}</p>
         <p className="body">{cell("body", body)}</p>
+        {editing && edit.remove && (
+          <div className="rowcontrols">
+            <Editcontrol
+              label={edit.remove.label}
+              context={edit.remove.context}
+              disabled={edit.remove.disabled}
+              onClick={edit.remove.onClick}
+            ></Editcontrol>
+            {edit.remove.note ? (
+              <p className="rowcontrolnote">{edit.remove.note}</p>
+            ) : null}
+          </div>
+        )}
       </div>
     </li>
   );

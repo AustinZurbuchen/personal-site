@@ -109,3 +109,23 @@
   margin: 0;
   cursor: pointer;
 }
+
+// The per-row Remove, and the note that replaces it when the list is down to
+// one. Right-aligned under the description so it reads as belonging to this row
+// rather than to the list.
+.rowcontrols {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rowcontrolnote {
+  margin: 0;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  color: #434242;
+}

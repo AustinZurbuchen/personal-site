@@ -2,6 +2,7 @@ import React from "react";
 import { generateStars, normalizeStars } from "../../utils/abilities";
 import Editfield from "../editfield/index";
 import Starrating from "../starrating/index";
+import Editcontrol from "../editcontrol/index";
 import "./index.scss";
 
 // Still a leaf: props only, no store, no network. The Abilities section owns
@@ -61,6 +62,19 @@ const Abilityitem = ({ ability, stars, edit }) => {
           {editing ? normalizeStars(edit.stars) : rating} out of 5
         </span>
       </div>
+      {editing && edit.remove && (
+        <div className="rowcontrols">
+          <Editcontrol
+            label={edit.remove.label}
+            context={edit.remove.context}
+            disabled={edit.remove.disabled}
+            onClick={edit.remove.onClick}
+          ></Editcontrol>
+          {edit.remove.note ? (
+            <p className="rowcontrolnote">{edit.remove.note}</p>
+          ) : null}
+        </div>
+      )}
     </li>
   );
 };
