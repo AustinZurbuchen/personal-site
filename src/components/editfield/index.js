@@ -18,6 +18,12 @@ import "./index.scss";
 // 1170px -> 759px, taking the three profile columns from 267px to 132px each.
 // The paragraph it replaced had text, and text has an intrinsic width.
 //
+// A <span>, not a <div>, and that is a correctness constraint rather than a
+// preference: the experience rows put fields inside an <h4> and two <p>s, all of
+// which take PHRASING content only. A <div> there is invalid, React warns, and a
+// real HTML parser would close the <p> before it. The span carries display:grid
+// from the stylesheet, so the layout is identical.
+//
 // So the wrapper is a 1x1 grid carrying the same string in a hidden ::after.
 // The pseudo element gives the wrapper real intrinsic width AND height; the
 // textarea sits in the same grid cell and overlays it. The band keeps its
@@ -83,7 +89,7 @@ const Editfield = ({
     // The trailing space in data-value matters: without it a value ending in a
     // newline measures one line short, and the field jumps as you press Enter
     // at the end.
-    <div className="editfieldwrap" data-value={text + " "}>
+    <span className="editfieldwrap" data-value={text + " "}>
       <textarea
         ref={field}
         id={id}
@@ -115,7 +121,7 @@ const Editfield = ({
         onChange={(event) => onChange && onChange(event.target.value)}
         onKeyDown={handleKeyDown}
       />
-    </div>
+    </span>
   );
 };
 export default Editfield;

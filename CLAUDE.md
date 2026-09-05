@@ -96,8 +96,10 @@ token is deliberately NOT here -- it lives in sessionStorage, owned by
 `src/utils/adminSession.js`, so a DevTools state snapshot never contains a
 write credential.
 
-Four sections are editable: `profile` (About Me) and the three quotes,
-`experiences` / `abilities` / `contact`. All four go through
+Four sections are editable and between them cover every path the server
+allows: `profile` (subtitle, About Me, name, age, location), `experiences` and
+`abilities` (each a quote plus two whole lists of rows), and `contact` (a quote
+plus the three links). All four go through
 `src/utils/useSectionEditor.js`, which owns the drafts, the dirty derivation
 and the PUT; `src/utils/useQuoteEditor.js` wraps it for the three that own a
 `quotes.N.quote` / `quotes.N.by` pair, and `src/components/editbar/` is the
@@ -230,7 +232,7 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 109 cases across 6 suites. They cover the two places this app
+`npm test` runs 143 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
 a property that spans nine component files and that no single component test
@@ -297,7 +299,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 109 tests, 6 suites
+npm test      # 143 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

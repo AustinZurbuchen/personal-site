@@ -1780,3 +1780,201 @@ describe("edit flow: editing ability rows", () => {
     ).toBe("true");
   });
 });
+
+// ===========================================================================
+// Experience rows. Two things here that the ability rows did not have: cells
+// that are phrasing-content-only elements, and row keys that are never shown
+// and must survive a write anyway.
+// ===========================================================================
+describe("edit flow: editing experience rows", () => {
+  const signedInApp = async (fixture) => {
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
+    const utils = renderApp();
+    await wait(() => {
+      expect(utils.container.querySelector("h1")).not.toBeNull();
+    });
+    return utils;
+  };
+
+  const openExperiences = (container) =>
+    fireEvent.click(control(container, "Edit", "Experiences"));
+
+  const cell = (container, list, index, key) =>
+    container.querySelector("#experiences-" + list + "-" + index + "-" + key + "Edit");
+
+  it("opens four fields for every row in both lists", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+
+    const rows =
+      fixture.experiences.school.length + fixture.experiences.work.length;
+    expect(container.querySelectorAll(".experienceitem textarea")).toHaveLength(
+      rows * 4
+    );
+    expect(cell(container, "school", 0, "company").value).toBe(
+      fixture.experiences.school[0].company
+    );
+    expect(cell(container, "school", 0, "dateLabel").value).toBe(
+      fixture.experiences.school[0].dateLabel
+    );
+    expect(cell(container, "work", 1, "title").value).toBe(
+      fixture.experiences.work[1].title
+    );
+    expect(cell(container, "work", 1, "body").value).toBe(
+      fixture.experiences.work[1].body
+    );
+  });
+
+  it("puts the fields INSIDE the h4 and the two paragraphs", async () => {
+    const { container } = await signedInApp();
+
+    openExperiences(container);
+
+    const row = container.querySelector(".experienceitem");
+    // These three take phrasing content only, which is why the field's wrapper
+    // is a <span>. A <div> here is invalid, React warns, and a real parser
+    // closes the <p> before it -- so the row would come apart in the DOM.
+    expect(row.querySelector("h4.institution textarea")).not.toBeNull();
+    expect(row.querySelector("p.experiencetitle textarea")).not.toBeNull();
+    expect(row.querySelector("p.body textarea")).not.toBeNull();
+    expect(row.querySelectorAll("h4")).toHaveLength(1);
+    expect(row.querySelectorAll("p")).toHaveLength(2);
+    // No block element smuggled inside a paragraph.
+    expect(row.querySelectorAll("p div")).toHaveLength(0);
+    expect(row.querySelectorAll("h4 div")).toHaveLength(0);
+  });
+
+  it("carries the invisible sort keys through a save untouched", async () => {
+    const fixture = resumeFixture();
+    // A work row as the document really stores it: the label is display text,
+    // and startDate/endDate/isCurrent are what the server sorts on.
+    fixture.experiences.work[0].startDate = "2021-05";
+    fixture.experiences.work[0].endDate = "2022-07";
+    fixture.experiences.work[0].isCurrent = false;
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+    fireEvent.change(cell(container, "work", 0, "dateLabel"), {
+      target: { value: "May 2021 - July 2022" },
+    });
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    const sent = body.updates["experiences.work"][0];
+    // Rebuilding a row from its four visible fields would drop these, and the
+    // server would refuse the write naming keys the operator never saw.
+    expect(sent.startDate).toBe("2021-05");
+    expect(sent.endDate).toBe("2022-07");
+    expect(sent.isCurrent).toBe(false);
+    expect(sent.dateLabel).toBe("May 2021 - July 2022");
+  });
+
+  it("sends the whole list, and only the list that changed", async () => {
+    const fixture = resumeFixture();
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+    fireEvent.change(cell(container, "work", 0, "company"), {
+      target: { value: "Somewhere Else" },
+    });
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    expect(Object.keys(body.updates)).toEqual(["experiences.work"]);
+    expect(body.updates["experiences.work"]).toHaveLength(
+      fixture.experiences.work.length
+    );
+    expect(body.updates["experiences.work"][0].company).toBe("Somewhere Else");
+    expect(body.updates["experiences.work"][1].company).toBe(
+      fixture.experiences.work[1].company
+    );
+  });
+
+  it("keeps the heading walk and the list semantics while editing", async () => {
+    const { container } = await signedInApp();
+    const count = (sel) => container.querySelectorAll(sel).length;
+    const before = {
+      headings: count("h1,h2,h3,h4,h5,h6"),
+      sections: count("section"),
+      anchors: count("a"),
+      lists: count("ul"),
+      items: count("li"),
+    };
+
+    openExperiences(container);
+
+    expect(count("h1,h2,h3,h4,h5,h6")).toBe(before.headings);
+    expect(count("section")).toBe(before.sections);
+    expect(count("a")).toBe(before.anchors);
+    expect(count("ul")).toBe(before.lists);
+    expect(count("li")).toBe(before.items);
+
+    // The <h4>s still have to be headings, not fields wearing a heading's
+    // class -- the level walk in site/index.test.js reads tag names.
+    const levels = Array.prototype.slice
+      .call(container.querySelectorAll("h1,h2,h3,h4,h5,h6"))
+      .map((node) => Number(node.tagName[1]));
+    levels.forEach((level, i) => {
+      if (i > 0) expect(level - levels[i - 1]).toBeLessThanOrEqual(1);
+    });
+  });
+
+  it("keeps every id unique with both lists open", async () => {
+    const { container } = await signedInApp();
+
+    openExperiences(container);
+
+    const ids = Array.prototype.slice
+      .call(container.querySelectorAll("[id]"))
+      .map((n) => n.id);
+    expect(ids).toHaveLength(new Set(ids).size);
+  });
+
+  it("leaves the caret in the quote, not in a row", async () => {
+    const { container } = await signedInApp();
+
+    openExperiences(container);
+
+    // Two claimants would hand it to whichever mounted last, which is how the
+    // footer used to land in its GitHub URL.
+    expect(document.activeElement.id).toBe("experiences-quoteEdit");
+  });
+
+  it("stays clean until a row actually changes", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+    expect(
+      control(container, "Save", "Experiences").getAttribute("aria-disabled")
+    ).toBe("true");
+
+    fireEvent.change(cell(container, "school", 0, "title"), {
+      target: { value: "Something else" },
+    });
+    expect(
+      control(container, "Save", "Experiences").getAttribute("aria-disabled")
+    ).toBeNull();
+
+    fireEvent.change(cell(container, "school", 0, "title"), {
+      target: { value: fixture.experiences.school[0].title },
+    });
+    expect(
+      control(container, "Save", "Experiences").getAttribute("aria-disabled")
+    ).toBe("true");
+  });
+});
