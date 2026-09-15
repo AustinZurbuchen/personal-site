@@ -312,6 +312,15 @@ The heartbeat commit under `monitor/` is not noise: public repos have scheduled
 workflows auto-disabled after 60 days of inactivity, and this repo has had
 several quiet stretches longer than that.
 
+It also checks that both containers run the image CI last published — three
+times in one day a container served code nobody thought it was, and nothing on
+the NAS can see that. Each image carries its commit (`GIT_SHA`): the API reports
+it at `GET /api/version`, the site in a static `/version.json`. Each is compared
+with the head commit of its repo's last *successful* "Publish image" run —
+`personal-site-py` master, this repo's `dev` — not with the branch HEAD, which
+also moves on docs-only pushes that `publish.yml` skips. After a deploy-worthy
+push it reads WARN until the container is Force Updated in Unraid.
+
 **Who watches the watcher.** Everything above can only report a problem while
 the workflow is still running; a workflow that stops firing produces no output
 to inspect, so nothing in this repo can detect its own silence. The
