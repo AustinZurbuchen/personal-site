@@ -35,7 +35,7 @@ describe("App: where the resume is fetched from", () => {
   // Production depends entirely on the runtime injection layer:
   // docker-entrypoint.d/40-env-config.sh rewrites public/env-config.js to set
   // window.__ENV__.REACT_APP_SERVER_URL, and nginx proxies /api/ to Flask. This
-  // resolver has silently broken once already (.env.local uses the wrong key,
+  // resolver has silently broken once already (.env.local used the wrong key,
   // REACT_APP_API_URL). A regression here builds, deploys, renders, and 404s its
   // only API call -- invisible until someone loads the page.
   it("calls the same origin when no runtime env is injected", () => {

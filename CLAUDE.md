@@ -23,9 +23,9 @@ checkout or compose project on the NAS. `.github/workflows/publish.yml` builds
 `docker-compose.yml` documents the intended topology and is useful locally,
 but it is **not** what runs in production.
 
-**Production runs the `dev` branch, not `master`.** `master` lags and does not
-contain the deploy machinery. Always confirm `git log origin/dev` before
-assuming what is live.
+**Production runs the `dev` branch, not `master`.** `publish.yml` fires on
+push to `dev`; `master` catches up by PR (as in #10) and can lag it. Always
+confirm `git log origin/dev` before assuming what is live.
 
 ## Component convention
 
@@ -140,9 +140,9 @@ as-is it resolves against the page's directory, so `/resume/` would fetch
 `/resume/api/getResume` — which nginx answers with `index.html`. Absolute URLs
 and `""` pass through.
 
-The var is `REACT_APP_SERVER_URL`. Note `.env.local` currently defines
-`REACT_APP_API_URL`, which is the **old** name and is ignored — local dev
-against a remote API will not work until that key is renamed.
+The var is `REACT_APP_SERVER_URL`. `.env.local` leaves it empty, so `npm start`
+fetches the stub at `public/getResume` and needs no backend; set it to a full
+URL (e.g. `http://localhost:5000`) to develop against a real API.
 
 nginx proxies `/api/` → `http://personal-site-py:5000/`, so the frontend and
 backend are same-origin in production and CORS is not exercised.
@@ -252,8 +252,6 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
   identically in three files; `.info`, `.body`, `.title`, `.hidden` also
   collide. A new top-level class name can silently restyle another section —
   check with `grep -rn '^\.classname' src/` before adding one.
-- **Zero media queries app-wide.** `padding: 40px 180px` and `width: 33%`
-  columns mean the site does not work on mobile.
 - `DISABLE_ESLINT_PLUGIN=true` in the build script, so lint errors will not
   fail a build.
 - CRA 5 / React 17 are both unmaintained.
