@@ -6,10 +6,12 @@ Flask API (separate repo, `../personal-site-py`).
 
 ## Stack
 
-CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · react-router-dom 6 ·
-axios · Sass. **No component library** — MUI and Emotion were removed once the
-login page was deleted, taking the bundle from 375KB to 219KB. Do not add one
-back; the design system is hand-rolled SCSS and a library's defaults fight it. Deployed as a Docker image (node:20-alpine
+CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · axios · Sass. **No
+component library** — MUI and Emotion were removed once the login page was
+deleted, taking the bundle from 375KB to 219KB. Do not add one back; the design
+system is hand-rolled SCSS and a library's defaults fight it. **No router
+either** — it is one page, and a single `path="/"` route rendered a blank page
+on every other path nginx answers with `index.html`. Deployed as a Docker image (node:20-alpine
 build → nginx:1.27-alpine serve) on an Unraid NAS behind Nginx Proxy Manager
 (openresty), DNS via Namecheap.
 
@@ -124,13 +126,19 @@ click discards typing with no undo.
 
 ## API URL resolution
 
-Three-layer fallback in `App.js`:
+Three-layer fallback in `src/utils/env.js` (`resolveServerUrl`), shared by
+`App.js` and `src/utils/adminApi.js`:
 
 1. `window.__ENV__.REACT_APP_SERVER_URL` — injected at container start by
    `docker-entrypoint.d/40-env-config.sh`, which overwrites
    `public/env-config.js`. This is what production uses (value: `"api"`).
 2. `process.env.REACT_APP_SERVER_URL` — dev only.
 3. `""` — same-origin.
+
+A bare path like `"api"` is made root-relative (`"/api"`) before use. Taken
+as-is it resolves against the page's directory, so `/resume/` would fetch
+`/resume/api/getResume` — which nginx answers with `index.html`. Absolute URLs
+and `""` pass through.
 
 The var is `REACT_APP_SERVER_URL`. Note `.env.local` currently defines
 `REACT_APP_API_URL`, which is the **old** name and is ignored — local dev
@@ -255,7 +263,7 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 173 cases across 6 suites. They cover the two places this app
+`npm test` runs 175 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
 a property that spans nine component files and that no single component test
@@ -322,7 +330,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 173 tests, 6 suites
+npm test      # 175 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

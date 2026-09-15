@@ -28,6 +28,7 @@ const renderApp = () => {
 
 afterEach(() => {
   delete window.__ENV__;
+  window.history.replaceState({}, "", "/");
 });
 
 describe("App: where the resume is fetched from", () => {
@@ -50,12 +51,14 @@ describe("App: where the resume is fetched from", () => {
     expect(axios.get).toHaveBeenCalledWith("/api/getResume");
   });
 
-  it("requests a root-relative path, so nested routes cannot rebase it", () => {
+  it("requests a root-relative path, so a nested URL cannot rebase it", () => {
     // Deliberately not a string comparison: the invariant is that the URL
-    // resolves to the same place from "/" and from "/some/deep/route". A value
-    // like "api/getResume" (no leading slash) satisfies neither, and would 404
-    // the moment a route deeper than one segment is added.
-    window.__ENV__ = { REACT_APP_SERVER_URL: "/api" };
+    // resolves to the same place from "/" and from "/some/deep/route". "api" is
+    // what the Unraid template really injects, with no leading slash. Taken
+    // as-is it resolves against the page's own directory: from "/resume/" that
+    // is /resume/api/getResume, which nginx answers with index.html and the
+    // merge turns into a hollow resume.
+    window.__ENV__ = { REACT_APP_SERVER_URL: "api" };
     axios.get.mockResolvedValue({ data: resumeFixture() });
     renderApp();
 
@@ -63,6 +66,14 @@ describe("App: where the resume is fetched from", () => {
     expect(new URL(url, "https://example.com/deep/route").pathname).toBe(
       new URL(url, "https://example.com/").pathname
     );
+  });
+
+  it("leaves an absolute server URL alone", () => {
+    // What the dev layer is for: `npm start` against a real API elsewhere.
+    window.__ENV__ = { REACT_APP_SERVER_URL: "http://localhost:5000" };
+    axios.get.mockResolvedValue({ data: resumeFixture() });
+    renderApp();
+    expect(axios.get).toHaveBeenCalledWith("http://localhost:5000/getResume");
   });
 });
 
@@ -132,5 +143,22 @@ describe("App: what is on screen before and after the fetch", () => {
       expect(container.querySelector("h1").textContent).toContain("Ada Lovelace");
     });
     expect(container.querySelector(".loaderror")).toBeNull();
+  });
+});
+
+describe("App: which paths render the resume", () => {
+  // nginx serves index.html for every path it has no file for, and /index.html
+  // as itself. The app used to sit inside a router with a single `path="/"`
+  // route, which matched none of those, so /index.html, /resume and any link
+  // with a trailing segment painted a blank page in production.
+  it("renders the resume on a path other than /", async () => {
+    window.history.pushState({}, "", "/index.html");
+    axios.get.mockResolvedValue({ data: resumeFixture() });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1").textContent).toContain(
+        "Ada Lovelace"
+      );
+    });
   });
 });

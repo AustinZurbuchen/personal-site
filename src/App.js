@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { update } from "./reducers/resume";
@@ -52,26 +51,15 @@ function App() {
           in every existing test, none of which sets that key -- it contributes
           no element, no landmark, no heading and no button.
 
-          Deliberately OUTSIDE the router and outside the fetch status: an admin
-          can sign in while /getResume is failing, and the sign-in form has no
-          reason to wait on the resume. It also means
-          src/components/site/index.js is not touched at all by this feature. */}
+          Deliberately OUTSIDE the fetch status: an admin can sign in while
+          /getResume is failing, and the sign-in form has no reason to wait on
+          the resume. It also means src/components/site/index.js is not touched
+          at all by this feature. */}
       <Adminbar></Adminbar>
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              status === "error" ? (
-                <Loaderror />
-              ) : status === "ready" ? (
-                <Site />
-              ) : null
-            }
-            exact
-          />
-        </Routes>
-      </BrowserRouter>
+      {/* No router: this is one page. A router with a single `path="/"` route
+          rendered nothing at all on /index.html, /resume, or any other path
+          nginx answers with index.html. */}
+      {status === "error" ? <Loaderror /> : status === "ready" ? <Site /> : null}
     </div>
   );
 }
