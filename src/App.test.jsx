@@ -1,6 +1,6 @@
 import React from "react";
 import { vi } from "vitest";
-import { render, wait } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import axios from "axios";
 import App from "./App";
@@ -87,12 +87,12 @@ describe("App: the shape of the response it accepts", () => {
   // merge happily produces a valid, blank resume from the wrong object.
   //
   // Assertions are scoped to the h1: the name also appears in the Details <dd>,
-  // so getByText would throw "found multiple elements" and, inside wait(), that
-  // surfaces as an unhelpful timeout instead of a clear failure.
+  // so getByText would throw "found multiple elements" and, inside waitFor(),
+  // that surfaces as an unhelpful timeout instead of a clear failure.
   it("accepts a bare resume document", async () => {
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain(
         "Ada Lovelace"
       );
@@ -102,7 +102,7 @@ describe("App: the shape of the response it accepts", () => {
   it("accepts a { resume: ... } envelope", async () => {
     axios.get.mockResolvedValue({ data: { resume: resumeFixture() } });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain(
         "Ada Lovelace"
       );
@@ -131,7 +131,7 @@ describe("App: what is on screen before and after the fetch", () => {
     axios.get.mockRejectedValue(new Error("Network Error"));
     const { container, getByRole } = renderApp();
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".loaderror")).not.toBeNull();
     });
     expect(getByRole("heading").textContent).toMatch(/something went wrong/i);
@@ -141,7 +141,7 @@ describe("App: what is on screen before and after the fetch", () => {
   it("does not leave the error state up once data arrives", async () => {
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain("Ada Lovelace");
     });
     expect(container.querySelector(".loaderror")).toBeNull();
@@ -157,7 +157,7 @@ describe("App: which paths render the resume", () => {
     window.history.pushState({}, "", "/index.html");
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain(
         "Ada Lovelace"
       );

@@ -1,6 +1,6 @@
 import React from "react";
 import { vi } from "vitest";
-import { render, fireEvent, wait } from "@testing-library/react";
+import { act, render, fireEvent, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import axios from "axios";
 import App from "./App";
@@ -20,10 +20,13 @@ import { sectionOpened, draftChanged } from "./reducers/editMode";
 // the editMode slice and sessionStorage.
 //
 // Toolchain notes, all load-bearing on this repo's pinned versions:
-//   * @testing-library/react 9.5 has NO waitFor. `wait` is the async helper.
-//   * dom-testing-library 6.16 (what RTL 9.5 resolves) silently ignores the
-//     `level` option on ByRole heading queries, so heading structure is asserted
-//     with querySelectorAll, exactly as src/components/site/index.test.js does.
+//   * @testing-library/react 16 + dom-testing-library 10. waitFor is the async
+//     helper, and its 1000ms default is raised back to RTL 9's 4500ms once, in
+//     src/setupTests.js.
+//   * dom-testing-library 10 HONOURS the `level` option on ByRole heading
+//     queries, which 6.16 silently ignored. Heading structure is still asserted
+//     with querySelectorAll, exactly as src/components/site/index.test.jsx does
+//     -- which is now a choice rather than a workaround.
 //   * getByText matches an element's DIRECT text nodes, so `control(container, "Save", "Profile")`
 //     finds the button even though it also carries a .visually-hidden " About
 //     Me" span.
@@ -76,11 +79,11 @@ const renderApp = () =>
     </Provider>
   );
 
-// Resolves once the fetched resume is on screen. `wait` (not waitFor) on RTL 9.
+// Resolves once the fetched resume is on screen.
 const renderLoadedApp = async () => {
   axios.get.mockResolvedValue({ data: resumeFixture() });
   const utils = renderApp();
-  await wait(() => {
+  await waitFor(() => {
     expect(utils.container.querySelector("h1")).not.toBeNull();
   });
   return utils;
@@ -165,7 +168,7 @@ describe("edit flow: the public render gains nothing", () => {
     const fixture = resumeFixture();
     axios.get.mockResolvedValue({ data: fixture });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -205,7 +208,7 @@ describe("edit flow: signing in", () => {
     fireEvent.change(getByLabelText("Password"), { target: { value: "hunter2" } });
     fireEvent.click(getByText("Sign in"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(control(container, "Edit", "Profile")).toBeInTheDocument();
     });
 
@@ -237,7 +240,7 @@ describe("edit flow: signing in", () => {
     fireEvent.change(getByLabelText("Password"), { target: { value: "wrong" } });
     fireEvent.click(getByText("Sign in"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".adminbarmessage")).not.toBeNull();
     });
     expect(container.querySelector(".adminbarmessage").textContent).toMatch(
@@ -260,7 +263,7 @@ describe("edit flow: signing in", () => {
     fireEvent.change(getByLabelText("Password"), { target: { value: "hunter2" } });
     fireEvent.click(getByText("Sign in"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".adminbarmessage")).not.toBeNull();
     });
     expect(container.querySelector(".adminbarmessage").textContent).toMatch(
@@ -304,7 +307,7 @@ describe("edit flow: editing About Me", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture });
     const { container, getByText } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -372,7 +375,7 @@ describe("edit flow: editing About Me", () => {
     });
     fireEvent.click(control(container, "Save", "Profile"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -397,7 +400,7 @@ describe("edit flow: editing About Me", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture });
     const { container, getByText } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -420,7 +423,7 @@ describe("edit flow: editing About Me", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture });
     const { container, getByText } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -490,7 +493,7 @@ describe("edit flow: when a save fails", () => {
 
     typeAndSave(container, "Far too long.");
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editerror")).not.toBeNull();
     });
     const message = container.querySelector(".editerror").textContent;
@@ -518,7 +521,7 @@ describe("edit flow: when a save fails", () => {
 
     typeAndSave(container, "Rewritten.");
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editerror")).not.toBeNull();
     });
     expect(container.querySelector(".editerror").textContent).toMatch(
@@ -534,7 +537,7 @@ describe("edit flow: when a save fails", () => {
 
     typeAndSave(container, "Written over eight hours.");
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editerror")).not.toBeNull();
     });
 
@@ -561,7 +564,7 @@ describe("edit flow: when a save fails", () => {
 
     typeAndSave(container, "Rewritten.");
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editerror")).not.toBeNull();
     });
     expect(container.querySelector(".editerror").textContent).toMatch(
@@ -676,7 +679,7 @@ describe("edit flow: the admin panel opens and closes", () => {
     fireEvent.change(getByLabelText("Password"), { target: { value: "wrong" } });
     fireEvent.click(getByText("Sign in"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".adminbarmessage")).not.toBeNull();
     });
 
@@ -710,7 +713,7 @@ describe("edit flow: editing the quotes", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
     const utils = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(utils.container.querySelector("h1")).not.toBeNull();
     });
     return utils;
@@ -764,7 +767,7 @@ describe("edit flow: editing the quotes", () => {
     fireEvent.change(by, { target: { value: "- Ada" } });
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -786,7 +789,7 @@ describe("edit flow: editing the quotes", () => {
     fireEvent.change(by, { target: { value: "- Someone else" } });
     fireEvent.click(control(container, "Save", "Abilities"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -832,7 +835,7 @@ describe("edit flow: editing the quotes", () => {
     fireEvent.change(quote, { target: { value: "Mine." } });
     fireEvent.click(control(container, "Save", "Contact"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -1006,7 +1009,7 @@ describe("edit flow: editing the quotes", () => {
     fireEvent.change(by, { target: { value: "- Ada" } });
     fireEvent.click(control(container, "Save", "Abilities"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editerror")).not.toBeNull();
     });
 
@@ -1036,7 +1039,7 @@ describe("edit flow: editing the remaining profile fields", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
     const utils = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(utils.container.querySelector("h1")).not.toBeNull();
     });
     return utils;
@@ -1124,7 +1127,7 @@ describe("edit flow: editing the remaining profile fields", () => {
     });
     fireEvent.click(control(container, "Save", "Profile"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -1197,7 +1200,7 @@ describe("edit flow: editing the remaining profile fields", () => {
     });
     fireEvent.click(control(container, "Save", "Contact"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -1311,8 +1314,12 @@ describe("edit flow: machinery a list editor depends on", () => {
       // Exactly what seeding a list editor does: copy the store's rows so
       // there is something mutable to edit. A different object, same value.
       const copy = fixture.abilities.languages.map((row) => ({ ...row }));
-      store.dispatch(sectionOpened("probe"));
-      store.dispatch(draftChanged({ path: PATH, value: copy }));
+      // createRoot batches updates dispatched outside an event handler, so the
+      // synchronous read below would see the pre-dispatch DOM without this.
+      act(() => {
+        store.dispatch(sectionOpened("probe"));
+        store.dispatch(draftChanged({ path: PATH, value: copy }));
+      });
 
       expect(getByTestId("dirty").textContent).toBe("false");
       expect(getByTestId("status").textContent).toBe("");
@@ -1323,8 +1330,10 @@ describe("edit flow: machinery a list editor depends on", () => {
 
       const changed = fixture.abilities.languages.map((row) => ({ ...row }));
       changed[0].stars = "1";
-      store.dispatch(sectionOpened("probe"));
-      store.dispatch(draftChanged({ path: PATH, value: changed }));
+      act(() => {
+        store.dispatch(sectionOpened("probe"));
+        store.dispatch(draftChanged({ path: PATH, value: changed }));
+      });
 
       expect(getByTestId("dirty").textContent).toBe("true");
       expect(getByTestId("status").textContent).toBe("Unsaved changes");
@@ -1340,8 +1349,10 @@ describe("edit flow: machinery a list editor depends on", () => {
         { resume: null }
       );
 
-      store.dispatch(sectionOpened("probe"));
-      store.dispatch(draftChanged({ path: PATH, value: [] }));
+      act(() => {
+        store.dispatch(sectionOpened("probe"));
+        store.dispatch(draftChanged({ path: PATH, value: [] }));
+      });
 
       expect(getByTestId("dirty").textContent).toBe("false");
     });
@@ -1373,13 +1384,15 @@ describe("edit flow: machinery a list editor depends on", () => {
         .mockImplementation(() => false);
       try {
         // Section "a" is open and holds a SEEDED list draft nobody has touched.
-        store.dispatch(sectionOpened("a"));
-        store.dispatch(
-          draftChanged({
-            path: "abilities.languages",
-            value: fixture.abilities.languages.map((row) => ({ ...row })),
-          })
-        );
+        act(() => {
+          store.dispatch(sectionOpened("a"));
+          store.dispatch(
+            draftChanged({
+              path: "abilities.languages",
+              value: fixture.abilities.languages.map((row) => ({ ...row })),
+            })
+          );
+        });
 
         fireEvent.click(getByText("open b"));
 
@@ -1406,10 +1419,12 @@ describe("edit flow: machinery a list editor depends on", () => {
       try {
         const changed = fixture.abilities.languages.map((row) => ({ ...row }));
         changed[0].ability = "Something else";
-        store.dispatch(sectionOpened("a"));
-        store.dispatch(
-          draftChanged({ path: "abilities.languages", value: changed })
-        );
+        act(() => {
+          store.dispatch(sectionOpened("a"));
+          store.dispatch(
+            draftChanged({ path: "abilities.languages", value: changed })
+          );
+        });
 
         fireEvent.click(getByText("open b"));
 
@@ -1602,7 +1617,7 @@ describe("edit flow: editing ability rows", () => {
     fireEvent.change(langField(container, 1), { target: { value: "Dart 3" } });
     fireEvent.click(control(container, "Save", "Abilities"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -1635,7 +1650,7 @@ describe("edit flow: editing ability rows", () => {
         <App />
       </Provider>
     );
-    await wait(() => {
+    await waitFor(() => {
       expect(utils.container.querySelector("h1")).not.toBeNull();
     });
     const { container } = utils;
@@ -1644,7 +1659,7 @@ describe("edit flow: editing ability rows", () => {
     fireEvent.change(langField(container, 0), { target: { value: "JS" } });
     fireEvent.click(control(container, "Save", "Abilities"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -1795,7 +1810,7 @@ describe("edit flow: editing experience rows", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
     const utils = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(utils.container.querySelector("h1")).not.toBeNull();
     });
     return utils;
@@ -1872,7 +1887,7 @@ describe("edit flow: editing experience rows", () => {
     });
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -1897,7 +1912,7 @@ describe("edit flow: editing experience rows", () => {
     });
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -2045,7 +2060,7 @@ describe("edit flow: the save history", () => {
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".backuplist")).not.toBeNull();
     });
 
@@ -2070,7 +2085,7 @@ describe("edit flow: the save history", () => {
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(
         axios.get.mock.calls.filter((c) => /backups/.test(c[0]))
       ).toHaveLength(1);
@@ -2090,7 +2105,7 @@ describe("edit flow: the save history", () => {
 
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".backuplist")).not.toBeNull();
     });
 
@@ -2120,7 +2135,7 @@ describe("edit flow: the save history", () => {
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.textContent).toMatch(/No saves recorded yet/i);
     });
     expect(container.querySelector(".backuplist")).toBeNull();
@@ -2137,7 +2152,7 @@ describe("edit flow: the save history", () => {
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".adminbarmessage")).not.toBeNull();
     });
     // An empty list here would read as "you have no backups", which is the
@@ -2159,7 +2174,7 @@ describe("edit flow: the save history", () => {
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
     });
     // Both copies, as everywhere else: storage is cleared by adminApi, the flag
@@ -2177,7 +2192,7 @@ describe("edit flow: the save history", () => {
 
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".backuplist")).not.toBeNull();
     });
 
@@ -2200,7 +2215,7 @@ describe("edit flow: the save history", () => {
 
     openPanel(container, getByText);
     fireEvent.click(getByText("Save history"));
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".backuprow")).not.toBeNull();
     });
 
@@ -2226,7 +2241,7 @@ describe("edit flow: a work row's hidden sort keys", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
     const utils = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(utils.container.querySelector("h1")).not.toBeNull();
     });
     return utils;
@@ -2302,7 +2317,7 @@ describe("edit flow: a work row's hidden sort keys", () => {
     fireEvent.click(at(container, "work", 0, "isCurrent"));
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -2327,7 +2342,7 @@ describe("edit flow: a work row's hidden sort keys", () => {
     });
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -2365,7 +2380,7 @@ describe("edit flow: the current-role checkbox during a save", () => {
     fixture.experiences.work[0].isCurrent = false;
     axios.get.mockResolvedValue({ data: fixture });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -2379,10 +2394,17 @@ describe("edit flow: the current-role checkbox during a save", () => {
     );
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    const box = container.querySelector("#experiences-work-0-isCurrentEdit");
-    await wait(() => {
-      expect(box.getAttribute("aria-disabled")).toBe("true");
+    // Re-queried inside the callback: a node captured before the wait goes
+    // stale if React replaces rather than mutates it, and the assertion would
+    // then poll a detached element until the timeout.
+    await waitFor(() => {
+      expect(
+        container
+          .querySelector("#experiences-work-0-isCurrentEdit")
+          .getAttribute("aria-disabled")
+      ).toBe("true");
     });
+    const box = container.querySelector("#experiences-work-0-isCurrentEdit");
     // A disabled control is blurred and dropped from the tab order, which would
     // throw a keyboard user out of the row mid-save.
     expect(box.disabled).toBe(false);
@@ -2406,7 +2428,7 @@ describe("edit flow: adding and removing rows", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
     const utils = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(utils.container.querySelector("h1")).not.toBeNull();
     });
     return utils;
@@ -2449,7 +2471,7 @@ describe("edit flow: adding and removing rows", () => {
     fireEvent.change(document.activeElement, { target: { value: "Rust" } });
     fireEvent.click(control(container, "Save", "Abilities"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -2477,7 +2499,7 @@ describe("edit flow: adding and removing rows", () => {
     fireEvent.change(document.activeElement, { target: { value: "New Place" } });
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -2501,7 +2523,7 @@ describe("edit flow: adding and removing rows", () => {
     fireEvent.change(document.activeElement, { target: { value: "A School" } });
     fireEvent.click(control(container, "Save", "Experiences"));
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".editstatus").textContent).toBe("Saved");
     });
 
@@ -2648,7 +2670,7 @@ describe("edit flow: naming the Remove controls", () => {
     ];
     axios.get.mockResolvedValue({ data: fixture });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -2664,7 +2686,7 @@ describe("edit flow: naming the Remove controls", () => {
     seedStoredSession();
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
@@ -2683,7 +2705,7 @@ describe("edit flow: naming the Remove controls", () => {
     const fixture = resumeFixture();
     axios.get.mockResolvedValue({ data: fixture });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1")).not.toBeNull();
     });
 
