@@ -12,16 +12,17 @@
     <link rel="canonical" href="https://austinzurbuchen.com/" />
 
     <meta name="theme-color" content="#1f9693" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!--
-      Open Graph. All URLs below are absolute on purpose: %PUBLIC_URL% expands to
-      the EMPTY STRING in this project (package.json "homepage" supplies only a
-      pathname), so "%PUBLIC_URL%/og-image.png" would emit a root-relative URL.
-      Slack tolerates that; LinkedIn and X commonly drop it, producing a card with
-      a title and no image while the tag looks correct in view-source.
+      Open Graph. The URLs below are absolute on purpose, unlike the three
+      root-relative ones above: those are fetched by a browser that already has
+      the origin, while a card image is fetched by a scraper that may not resolve
+      a root-relative path at all. Slack tolerates "/og-image.png"; LinkedIn and X
+      commonly drop it, producing a card with a title and no image while the tag
+      looks correct in view-source.
     -->
     <meta property="og:type" content="profile" />
     <meta property="og:url" content="https://austinzurbuchen.com/" />
@@ -121,7 +122,14 @@
   </head>
   <body>
     <noscript><h1>Austin Zurbuchen</h1><p>Passionate Software Developer — Folsom, California</p><p>Enable JavaScript to view the full resume, or reach me at <a href="mailto:austinzurbuchen@gmail.com">austinzurbuchen@gmail.com</a>, <a href="https://github.com/AustinZurbuchen">GitHub</a>, or <a href="https://www.linkedin.com/in/austin-zurbuchen-638638105/">LinkedIn</a>.</p></noscript>
-    <script src="%PUBLIC_URL%/env-config.js"></script>
+    <!--
+      A classic script, deliberately not a module: it must run BEFORE the bundle
+      reads window.__ENV__. Module scripts are deferred, so this executes first
+      whatever the order. docker-entrypoint.d/40-env-config.sh overwrites this
+      file at container start, so it must stay unhashed and copied verbatim.
+    -->
+    <script src="/env-config.js"></script>
     <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
   </body>
 </html>
