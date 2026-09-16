@@ -1,4 +1,5 @@
 import React from "react";
+import { vi } from "vitest";
 import { render, fireEvent, wait } from "@testing-library/react";
 import { Provider } from "react-redux";
 import axios from "axios";
@@ -27,12 +28,14 @@ import { sectionOpened, draftChanged } from "./reducers/editMode";
 //     finds the button even though it also carries a .visually-hidden " About
 //     Me" span.
 //
-// The factory form of jest.mock keeps these tests independent of the
-// "^axios$" -> "axios/dist/node/axios.cjs" mapping in package.json, and unlike
-// App.test.js's mock this one has post and put, because this flow uses them.
-jest.mock("axios", () => ({
+// The factory form of vi.mock keeps these tests off the real module entirely,
+// and unlike App.test.jsx's mock this one has post and put, because this flow
+// uses them. It must stay a literal call: vitest hoists vi.mock above the
+// imports by static analysis, which an aliased or indirected call would defeat
+// silently -- the factory would simply never apply.
+vi.mock("axios", () => ({
   __esModule: true,
-  default: { get: jest.fn(), post: jest.fn(), put: jest.fn() },
+  default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
 }));
 
 const TOKEN = "signed.session.token";
@@ -435,7 +438,7 @@ describe("edit flow: editing About Me", () => {
     // jsdom's window.confirm is a stub that logs "Not implemented" and returns
     // undefined, so it MUST be replaced here -- an unstubbed run would make this
     // assertion depend on that stub's falsy return.
-    const confirmSpy = jest
+    const confirmSpy = vi
       .spyOn(window, "confirm")
       .mockImplementation(() => false);
     try {
@@ -923,7 +926,7 @@ describe("edit flow: editing the quotes", () => {
 
   it("asks before opening a second section over unsaved work", async () => {
     const { container } = await signedInAppWith();
-    const confirm = jest.spyOn(window, "confirm");
+    const confirm = vi.spyOn(window, "confirm");
     try {
       const { quote } = openQuote(container, "experiences", "Experiences");
       fireEvent.change(quote, { target: { value: "Half a thought" } });
@@ -953,7 +956,7 @@ describe("edit flow: editing the quotes", () => {
 
   it("does not ask when the first section has nothing unsaved", async () => {
     const { container } = await signedInAppWith();
-    const confirm = jest.spyOn(window, "confirm").mockImplementation(() => false);
+    const confirm = vi.spyOn(window, "confirm").mockImplementation(() => false);
     try {
       openQuote(container, "experiences", "Experiences");
       // Opened and touched nothing: there is no work to lose, so a prompt here
@@ -1365,7 +1368,7 @@ describe("edit flow: machinery a list editor depends on", () => {
       const { store, getByText } = renderWithStore(<OpenerProbe section="b" />, {
         resume: fixture,
       });
-      const confirm = jest
+      const confirm = vi
         .spyOn(window, "confirm")
         .mockImplementation(() => false);
       try {
@@ -1397,7 +1400,7 @@ describe("edit flow: machinery a list editor depends on", () => {
       const { store, getByText } = renderWithStore(<OpenerProbe section="b" />, {
         resume: fixture,
       });
-      const confirm = jest
+      const confirm = vi
         .spyOn(window, "confirm")
         .mockImplementation(() => false);
       try {

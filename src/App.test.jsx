@@ -1,4 +1,5 @@
 import React from "react";
+import { vi } from "vitest";
 import { render, wait } from "@testing-library/react";
 import { Provider } from "react-redux";
 import axios from "axios";
@@ -6,17 +7,18 @@ import App from "./App";
 import { makeStore } from "./test-utils/renderWithStore";
 import { resumeFixture } from "./test-utils/fixtures";
 
-// The factory form of jest.mock matters: an automock would still LOAD axios to
-// derive its shape. With the "^axios$" -> "axios/dist/node/axios.cjs" mapping in
-// package.json that would work, but the factory keeps these tests independent of
-// the mapping and never touches the real module.
-jest.mock("axios", () => ({
+// The factory form of vi.mock matters: an automock would still LOAD axios to
+// derive its shape. The factory never touches the real module at all. It must
+// stay a literal call, too -- vitest hoists vi.mock above the imports by static
+// analysis, which an aliased or indirected call would defeat silently.
+vi.mock("axios", () => ({
   __esModule: true,
-  default: { get: jest.fn() },
+  default: { get: vi.fn() },
 }));
 
-// react-scripts sets resetMocks: true, so any implementation baked into a
-// jest.fn() at module scope is wiped before every test. Set behaviour per test.
+// vite.config.js sets mockReset: true, as CRA's Jest set resetMocks: true, so any
+// implementation baked into a vi.fn() at module scope is wiped before every
+// test. Set behaviour per test.
 const renderApp = () => {
   const store = makeStore();
   return render(

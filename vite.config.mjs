@@ -21,6 +21,20 @@ export default defineConfig(({ mode }) => {
       outDir: "build",
     },
 
+    test: {
+      // Four of the six test files use only describe/it/expect and never import
+      // them; globals keeps those files untouched by the runner swap.
+      globals: true,
+      // jsdom is an OPTIONAL peer of vitest, so it has to be an explicit devDep.
+      environment: "jsdom",
+      setupFiles: "./src/setupTests.js",
+      // CRA's Jest set resetMocks: true implicitly. Every test in this suite sets
+      // its mock implementation inline and depends on the previous one being
+      // gone; without this the suite fails wholesale.
+      mockReset: true,
+      include: ["src/**/*.test.{js,jsx}"],
+    },
+
     // DELIBERATELY process.env, not import.meta.env. src/utils/env.js gates its
     // dev-only fallback layer on NODE_ENV === "development", which was "test"
     // under Jest, so the layer was dead inside the suite. import.meta.env.DEV is
