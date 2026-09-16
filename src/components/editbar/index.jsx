@@ -10,7 +10,7 @@ import "./index.scss";
 // hook owns every decision, this owns the markup.
 //
 // Introduces NO heading, NO <section>, NO <a> and NO <ul>/<li>, so the
-// structural assertions in src/components/site/index.test.js hold wherever it
+// structural assertions in src/components/site/index.test.jsx hold wherever it
 // renders -- including inside the footer's contentinfo landmark, next to the
 // <ul> of links.
 //
@@ -38,7 +38,7 @@ const Editbar = ({ context, editor, dark = false }) => {
   } = editor;
 
   // Nothing at all on the public site: no element, no landmark, no button.
-  // src/editflow.test.js asserts the signed-out render contains zero <button>s
+  // src/editflow.test.jsx asserts the signed-out render contains zero <button>s
   // across the whole page.
   //
   // `|| editing` rather than `canEdit` alone: a token that expires mid-edit

@@ -2,13 +2,11 @@
 //
 // THIS MODULE DELIBERATELY IMPORTS NOTHING. src/reducers/editMode.js seeds its
 // `signedIn` flag from hasSession() here, and every store construction --
-// including src/test-utils/renderWithStore.js, which builds one for all 57
+// including src/test-utils/renderWithStore.jsx, which builds one for all 175
 // existing tests -- therefore loads this file. Importing axios here would drag
-// axios into the module graph of every reducer test, where it parses only
-// because of the "^axios$" -> "axios/dist/node/axios.cjs" mapping in
-// package.json. Keeping the token store separate from the HTTP client means a
-// change to that mapping can break the network layer without taking the whole
-// suite down with it. src/utils/adminApi.js imports this file, never the
+// the HTTP client into the module graph of every reducer test, which has no
+// business knowing it exists. Keeping the token store separate from the network
+// layer means a change to one cannot take the whole suite down with it. src/utils/adminApi.js imports this file, never the
 // reverse.
 //
 // STORAGE: sessionStorage, not localStorage. The token dies with the tab, so a

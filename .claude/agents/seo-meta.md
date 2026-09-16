@@ -58,8 +58,9 @@ alt), Twitter `summary_large_image`, and a JSON-LD `@graph` with `Person` +
   A referenced-but-absent asset fails silently and still looks correct in curl.
   Verify assets by content type: `curl -sI .../og-image.png | grep -i
   content-type` must return `image/png`.
-- **CRA minifies `index.html`.** `html-minifier-terser` has historically
-  mangled `application/ld+json`. After any change, confirm the block survives:
+- **The bundler rewrites `index.html`.** Vite injects the module script and the
+  hashed asset URLs, and HTML minifiers have historically mangled
+  `application/ld+json`. After any change, confirm the block survives:
   parse it out of `build/index.html` and `json.loads` it.
 - **A new image needs a new filename.** All three platforms cache the card by
   image URL, and a query string does not bust it — several scrapers strip it.
@@ -93,7 +94,7 @@ Missing entirely:
 
 ## Constraints specific to this app
 
-**The resume data is fetched client-side.** `App.js` loads `/getResume` on
+**The resume data is fetched client-side.** `App.jsx` loads `/getResume` on
 mount and renders nothing until it resolves, so a crawler that does not
 execute JavaScript sees an empty `<div id="root">`. Meta tags in
 `public/index.html` are static and therefore the *only* thing reliably indexed.

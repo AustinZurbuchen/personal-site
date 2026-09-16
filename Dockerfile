@@ -1,4 +1,9 @@
-FROM node:20-alpine AS builder
+# node:24, not 20. Vite 8 needs ^20.19 || >=22.12, which node:20-alpine would
+# probably satisfy today -- but `npm ci` installs devDependencies including
+# Vitest 5, whose range starts at 22.12. npm only warns rather than failing, and
+# shipping a build that depends on npm NOT enforcing a declared engine range is a
+# trap for whoever turns on engine-strict later. It also matches the CI job.
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./

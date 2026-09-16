@@ -13,7 +13,7 @@ You handle everything between a git commit and a working austinzurbuchen.com.
 Namecheap DNS → 98.252.87.179 (home IP, Unraid NAS)
   └─ Nginx Proxy Manager (openresty) — terminates TLS, Let's Encrypt
        └─ personal-site container (nginx:1.27-alpine, host :3000 → :80)
-            ├─ serves the CRA build from /usr/share/nginx/html
+            ├─ serves the Vite build from /usr/share/nginx/html
             └─ location /api/ → proxy_pass http://personal-site-py:5000/
                  └─ personal-site-py container (Flask) → MongoDB Atlas
 ```
@@ -74,7 +74,7 @@ Verify each before acting; state is as of the last audit, not necessarily now.
    uncompressed; gzip takes it to roughly 110KB. Single biggest performance win
    available and a two-line change.
 
-4. **Cache headers.** Content-hashed assets under `/static/` were served with
+4. **Cache headers.** Content-hashed assets under `/assets/` were served with
    `max-age=44838` (~12h). Because the filenames carry content hashes they can
    safely be `max-age=31536000, immutable`. `index.html` must stay `no-cache`.
 

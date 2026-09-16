@@ -78,7 +78,7 @@ const Experienceitem = ({ company, dateLabel, title, body, edit }) => {
 
         {editing && edit.startDate && (
           <div className="sortkeys">
-            {/* Not a heading: site/index.test.js walks heading levels and a
+            {/* Not a heading: site/index.test.jsx walks heading levels and a
                 fifth level here would jump from the h4 above. */}
             <p className="sortkeynote">Sort order only — not shown on the page.</p>
             {dateCell("startDate", "Start (YYYY-MM)")}

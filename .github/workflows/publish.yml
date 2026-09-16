@@ -26,7 +26,61 @@ permissions:
   packages: write
 
 jobs:
+  # The suite has never gated the image: until now nothing ran it but a person,
+  # locally, by choice. `needs: test` below means a red suite produces no image
+  # at all, so the NAS cannot pull a broken build even by Force Update.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # Matches the Dockerfile's builder. Vitest 5 needs >= 22.12.
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+
+      # The suite carries `retry: 1` (see vite.config.mjs) to absorb a measured
+      # read/commit race the React 19 migration introduced in the TESTS, not in
+      # the image. A retry is INVISIBLE in the default reporter -- a test that
+      # failed once and passed on the second attempt prints as a plain pass -- so
+      # the JSON reporter is emitted alongside it and read back below.
+      - run: npm test -- --reporter=default --reporter=json --outputFile.json=vitest-results.json
+
+      # Vitest 5's JSON report has no retryCount, but a test that passed only on
+      # retry keeps its first attempt's failure: status "passed" WITH a non-empty
+      # failureMessages. That pair is the detector. Annotating it keeps the ~16%
+      # per-run flake rate observable instead of letting the retry erase it.
+      #
+      # Never fails the build: these are warnings about a known defect, not a new
+      # one. If these annotations stop appearing, the race is gone and both this
+      # step and `retry: 1` can go.
+      - name: Flag tests that passed only on retry
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "./vitest-results.json";
+            if (!fs.existsSync(p)) {
+              console.log("No JSON report written; nothing to inspect.");
+            } else {
+              const r = JSON.parse(fs.readFileSync(p, "utf8"));
+              const flaky = (r.testResults || []).flatMap((f) =>
+                (f.assertionResults || [])
+                  .filter((t) => t.status === "passed" && (t.failureMessages || []).length)
+                  .map((t) => t.fullName)
+              );
+              if (flaky.length === 0) {
+                console.log("No test passed only on retry.");
+              } else {
+                console.log("::warning::" + flaky.length + " test(s) passed only on retry");
+                for (const n of flaky) console.log("::warning::" + n);
+              }
+            }
+          '
+
   publish:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

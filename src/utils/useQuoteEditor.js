@@ -12,7 +12,7 @@ import { useSectionEditor } from './useSectionEditor';
 //
 // AN OFF-BY-ONE HERE IS INVISIBLE UNTIL IT WRITES. A wrong `index` opens a field
 // showing another band's quote and saves into that band's slot -- the screen
-// looks plausible the whole time. src/editflow.test.js pins each section to its
+// looks plausible the whole time. src/editflow.test.jsx pins each section to its
 // own slot for exactly this reason.
 //
 // `extraFields` lets a section own more than its quote -- the footer edits the
@@ -43,7 +43,7 @@ export const useQuoteEditor = (section, index, name, extraFields) => {
               onCancel: editor.closeEditor,
               subtitle: {
                   // Section-prefixed, because three quote editors plus Profile
-                  // put four of these on one page and site/index.test.js asserts
+                  // put four of these on one page and site/index.test.jsx asserts
                   // every [id] is unique.
                   id: section + '-quoteEdit',
                   label: name + ' quote',

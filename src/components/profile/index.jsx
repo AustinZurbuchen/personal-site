@@ -44,7 +44,7 @@ function Profile() {
     : null;
 
   // Ids are section-prefixed because this band now puts five of them on a page
-  // that already carries the quote editors' six; site/index.test.js asserts
+  // that already carries the quote editors' six; site/index.test.jsx asserts
   // every [id] is unique.
   const field = (path, id, label) => ({
     id: id,

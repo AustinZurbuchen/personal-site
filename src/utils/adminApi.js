@@ -12,7 +12,7 @@ import { readSession, writeSession, clearSession } from "./adminSession";
 // and the caller decides what that means for the store -- which keeps it free
 // of an import cycle with the reducer and testable without a Provider.
 //
-// NOTE for the existing suite: src/App.test.js mocks axios as `{ get }` only.
+// NOTE for the existing suite: src/App.test.jsx mocks axios as `{ get }` only.
 // Nothing here runs unless the admin flag is on, and the flag is off in jsdom,
 // so the missing `post`/`put` never bite. Do not call any of them at module
 // scope.
@@ -31,10 +31,11 @@ const REQUEST_TIMEOUT_MS = 15000;
 // read `error.response.status`.
 //
 // A plain Error with properties attached, NOT `class ApiError extends Error`.
-// Babel downlevelling a subclass of a builtin to ES5 breaks `instanceof`
-// silently, and this project's production browserslist does downlevel -- the
-// bug would appear only in the built image, which is the worst possible place
-// for it.
+// Downlevelling a subclass of a builtin to ES5 breaks `instanceof` silently.
+// That was load-bearing under CRA, whose browserslist did downlevel; Vite 8
+// targets a modern baseline and no longer does. Kept anyway -- the plain-Error
+// shape costs nothing, and the bug it avoids would appear only in a built
+// image, which is the worst possible place for it.
 //
 // The copy follows components/loaderror/: name what failed, say whether it is
 // retryable, never blame the reader. Two extra rules for saves: say the typed

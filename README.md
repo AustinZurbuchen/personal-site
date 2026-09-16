@@ -1,68 +1,36 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# personal-site
 
-## Available Scripts
+The React resume site behind [austinzurbuchen.com](https://austinzurbuchen.com).
+Content lives in MongoDB Atlas and is served by the `personal-site-py` Flask API;
+this repo is the front end and the nginx that fronts it.
 
-In the project directory, you can run:
+Vite 8 · React 19 · Redux Toolkit 2 · Sass, tested with Vitest.
 
-### `npm start`
+```
+npm install
+npm start        # dev server on :3000, no backend needed (stub at public/getResume)
+npm test         # 175 tests, 6 files
+npm run build    # production build into build/
+npm run preview  # serve the built output
+```
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+`npm start` needs no API: with `REACT_APP_SERVER_URL` empty the app fetches the
+stub at `public/getResume`. Point it at a real API by setting that key in
+`.env.local`.
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+## Deploying
 
-### `npm test`
+Pushing to `dev` builds a `linux/amd64` image and pushes it to GHCR; the Unraid
+NAS pulls it on Force Update. The suite gates the image — a red run publishes
+nothing. `master` catches up by PR.
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Every image carries the commit it was built from at `/version.json`, and
+`.github/workflows/cert-check.yml` compares that twice daily against the last
+successful publish, so a container running code nobody deployed raises an issue.
 
-### `npm run build`
+## Working in this repo
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+Read [CLAUDE.md](CLAUDE.md) first. It carries the parts that are not obvious from
+the code: why the API URL is normalised, why editing is LAN-only, which colours
+were measured rather than chosen, and which constraints exist because something
+broke once.

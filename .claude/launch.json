@@ -4,7 +4,7 @@
     {
       "name": "personal-site",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["react-scripts", "start"],
+      "runtimeArgs": ["vite"],
       "port": 3000
     }
   ]

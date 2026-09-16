@@ -6,7 +6,7 @@ import "./index.scss";
 // is byte-identical to what it was: one <h3>, one <ul>, and whatever `items`
 // contains. The control below the list appears only while editing.
 //
-// AFTER the </ul>, never inside it. site/index.test.js asserts every <li> has a
+// AFTER the </ul>, never inside it. site/index.test.jsx asserts every <li> has a
 // <ul> parent and counts them; a button smuggled into the list as an <li> would
 // be counted as an item, and one placed loose inside the <ul> is invalid markup
 // that a real parser relocates.

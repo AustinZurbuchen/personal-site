@@ -24,7 +24,7 @@ import { isAdminUi } from './env';
 //
 // A hook rather than a wrapper component: the section components are already
 // the ones that own their <section> element and their heading, and
-// src/components/site/index.test.js asserts exactly three <section>s and a fixed
+// src/components/site/index.test.jsx asserts exactly three <section>s and a fixed
 // heading walk. A wrapper would have had to render nothing at all to be safe,
 // which is what a hook is.
 
@@ -139,7 +139,7 @@ export const useSectionEditor = (section, fields) => {
     );
 
     // One id per section, unique by construction, and present only in admin
-    // mode. site/index.test.js asserts every [id] on the page is unique.
+    // mode. site/index.test.jsx asserts every [id] on the page is unique.
     const errorId = section + '-saveerror';
 
     // The controlled-input rule: a touched path reads from the draft, an

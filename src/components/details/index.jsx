@@ -11,7 +11,7 @@ import "./index.scss";
 // attribute was added to an existing one.
 //
 // THE FIELDS GO INSIDE THE <dd>s, never in place of the <dl>. The definition
-// list is the whole accessibility story of this block -- site/index.test.js
+// list is the whole accessibility story of this block -- site/index.test.jsx
 // pins the dt/dd pairing and the order of the three definitions -- so edit mode
 // keeps every one of those elements and only changes what sits in the cell.
 //

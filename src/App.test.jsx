@@ -1,22 +1,24 @@
 import React from "react";
-import { render, wait } from "@testing-library/react";
+import { vi } from "vitest";
+import { render, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import axios from "axios";
 import App from "./App";
 import { makeStore } from "./test-utils/renderWithStore";
 import { resumeFixture } from "./test-utils/fixtures";
 
-// The factory form of jest.mock matters: an automock would still LOAD axios to
-// derive its shape. With the "^axios$" -> "axios/dist/node/axios.cjs" mapping in
-// package.json that would work, but the factory keeps these tests independent of
-// the mapping and never touches the real module.
-jest.mock("axios", () => ({
+// The factory form of vi.mock matters: an automock would still LOAD axios to
+// derive its shape. The factory never touches the real module at all. It must
+// stay a literal call, too -- vitest hoists vi.mock above the imports by static
+// analysis, which an aliased or indirected call would defeat silently.
+vi.mock("axios", () => ({
   __esModule: true,
-  default: { get: jest.fn() },
+  default: { get: vi.fn() },
 }));
 
-// react-scripts sets resetMocks: true, so any implementation baked into a
-// jest.fn() at module scope is wiped before every test. Set behaviour per test.
+// vite.config.js sets mockReset: true, as CRA's Jest set resetMocks: true, so any
+// implementation baked into a vi.fn() at module scope is wiped before every
+// test. Set behaviour per test.
 const renderApp = () => {
   const store = makeStore();
   return render(
@@ -85,12 +87,12 @@ describe("App: the shape of the response it accepts", () => {
   // merge happily produces a valid, blank resume from the wrong object.
   //
   // Assertions are scoped to the h1: the name also appears in the Details <dd>,
-  // so getByText would throw "found multiple elements" and, inside wait(), that
-  // surfaces as an unhelpful timeout instead of a clear failure.
+  // so getByText would throw "found multiple elements" and, inside waitFor(),
+  // that surfaces as an unhelpful timeout instead of a clear failure.
   it("accepts a bare resume document", async () => {
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain(
         "Ada Lovelace"
       );
@@ -100,7 +102,7 @@ describe("App: the shape of the response it accepts", () => {
   it("accepts a { resume: ... } envelope", async () => {
     axios.get.mockResolvedValue({ data: { resume: resumeFixture() } });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain(
         "Ada Lovelace"
       );
@@ -129,7 +131,7 @@ describe("App: what is on screen before and after the fetch", () => {
     axios.get.mockRejectedValue(new Error("Network Error"));
     const { container, getByRole } = renderApp();
 
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector(".loaderror")).not.toBeNull();
     });
     expect(getByRole("heading").textContent).toMatch(/something went wrong/i);
@@ -139,7 +141,7 @@ describe("App: what is on screen before and after the fetch", () => {
   it("does not leave the error state up once data arrives", async () => {
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain("Ada Lovelace");
     });
     expect(container.querySelector(".loaderror")).toBeNull();
@@ -155,7 +157,7 @@ describe("App: which paths render the resume", () => {
     window.history.pushState({}, "", "/index.html");
     axios.get.mockResolvedValue({ data: resumeFixture() });
     const { container } = renderApp();
-    await wait(() => {
+    await waitFor(() => {
       expect(container.querySelector("h1").textContent).toContain(
         "Ada Lovelace"
       );

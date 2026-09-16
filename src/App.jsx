@@ -21,7 +21,7 @@ function App() {
   // the same value for /session and /updateResume and a second copy of a
   // three-layer fallback is a second chance to get it wrong. Still resolved on
   // every render rather than memoised: window.__ENV__ is set by a <script>
-  // before the bundle and never changes afterwards, and src/App.test.js assigns
+  // before the bundle and never changes afterwards, and src/App.test.jsx assigns
   // it between renders. It returns a string, so the [dispatch, serverUrl]
   // dependency array below compares exactly as the inline version did.
   const serverUrl = resolveServerUrl();

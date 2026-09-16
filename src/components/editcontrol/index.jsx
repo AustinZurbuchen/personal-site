@@ -7,7 +7,7 @@ import "./index.scss";
 // A TEXT button, not an icon. The site ships no icon set, so a glyph here would
 // be the only one in the app -- and would still need a text alternative.
 //
-// A <button>, never an <a>: src/components/site/index.test.js asserts exactly
+// A <button>, never an <a>: src/components/site/index.test.jsx asserts exactly
 // three anchors excluding the skip link, and asserts nothing at all about
 // buttons.
 //
