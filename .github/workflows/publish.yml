@@ -26,7 +26,23 @@ permissions:
   packages: write
 
 jobs:
+  # The suite has never gated the image: until now nothing ran it but a person,
+  # locally, by choice. `needs: test` below means a red suite produces no image
+  # at all, so the NAS cannot pull a broken build even by Force Update.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # Matches the Dockerfile's builder. Vitest 5 needs >= 22.12.
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   publish:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
