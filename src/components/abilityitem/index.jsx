@@ -9,7 +9,7 @@ import "./index.scss";
 // the drafts, the request and the controls.
 //
 // `edit` is undefined on the public site and in every existing test -- the only
-// call abilityitem/index.test.js makes is <Abilityitem ability stars /> -- so
+// call abilityitem/index.test.jsx makes is <Abilityitem ability stars /> -- so
 // `editing` is false, both branches below render exactly what they rendered
 // before, and the read-mode DOM is byte-identical. That is what keeps the five
 // assertions in that file (glyph count, aria-hidden, shape-not-colour, string
@@ -17,7 +17,7 @@ import "./index.scss";
 //
 // The <li> is untouched in both modes. Only the two cells change, the same way
 // the <dd>s do in components/details/ and the link cells do in the footer --
-// site/index.test.js counts listitems and asserts each one's parent is a UL,
+// site/index.test.jsx counts listitems and asserts each one's parent is a UL,
 // and that has to hold with an editor open.
 const Abilityitem = ({ ability, stars, edit }) => {
   const editing = Boolean(edit && edit.editing);

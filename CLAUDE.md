@@ -6,12 +6,12 @@ Flask API (separate repo, `../personal-site-py`).
 
 ## Stack
 
-CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · axios · Sass. **No
-component library** — MUI and Emotion were removed once the login page was
-deleted, taking the bundle from 375KB to 219KB. Do not add one back; the design
-system is hand-rolled SCSS and a library's defaults fight it. **No router
+Vite 8 (rolldown) · React 19 · Redux Toolkit 2 · axios · Sass, tested with
+Vitest 5. **No component library** — MUI and Emotion were removed once the
+login page was deleted; the bundle is 104KB gzipped, 322KB raw. Do not add one
+back; the design system is hand-rolled SCSS and a library's defaults fight it. **No router
 either** — it is one page, and a single `path="/"` route rendered a blank page
-on every other path nginx answers with `index.html`. Deployed as a Docker image (node:20-alpine
+on every other path nginx answers with `index.html`. Deployed as a Docker image (node:24-alpine
 build → nginx:1.27-alpine serve) on an Unraid NAS behind Nginx Proxy Manager
 (openresty), DNS via Namecheap.
 
@@ -33,7 +33,7 @@ Every component is a directory under `src/components/`:
 
 ```
 src/components/<name>/
-  index.js      # default export, function component
+  index.jsx      # default export, function component
   index.scss    # imported as `import "./index.scss";`
 ```
 
@@ -59,12 +59,12 @@ Redux directly. Leaf components (`titles`, `itemslist`, `abilityitem`,
 `experienceitem`, `aboutme`, `details`, `photo`) are presentational and take
 props only. Keep that split.
 
-List rendering lives in `src/utils/` (`abilities.js`, `experiences.js`) as
+List rendering lives in `src/utils/` (`abilities.jsx`, `experiences.jsx`) as
 functions returning arrays of JSX with `key={i.toString()}`.
 
 ## Data flow
 
-`App.js` fetches `${serverUrl}/getResume` once on mount and dispatches
+`App.jsx` fetches `${serverUrl}/getResume` once on mount and dispatches
 `update(...)`. Everything else reads `useSelector((state) => state.resume.value)`.
 
 `src/reducers/resume.js` merges the API payload over an `emptyResume` skeleton,
@@ -73,7 +73,7 @@ always defined. Do not reintroduce optional chaining guards that assume they
 may be missing.
 
 The merge spreads the payload, so **unknown fields DO pass through** —
-`profile.age` and `profile.location` are rendered by `details/index.js` and
+`profile.age` and `profile.location` are rendered by `details/index.jsx` and
 appear nowhere in `emptyResume`. Adding a field to `emptyResume` is only
 required when a component will dereference it **unguarded** before the fetch
 resolves; otherwise it is optional. (An earlier version of this file claimed
@@ -85,7 +85,7 @@ the actual behaviour.)
 (`quotes[0]`/`[1]`/`[2]`) with no guard. A shorter array from the database used
 to take the whole page down.
 
-`App.js` tracks an explicit `status` of `loading` / `ready` / `error` rather
+`App.jsx` tracks an explicit `status` of `loading` / `ready` / `error` rather
 than inspecting the store. Do not reintroduce a gate like `resume?.profile` —
 `emptyResume.profile` is an object, so it is truthy on the first render and
 such a gate opens before any response arrives, painting the blank skeleton. On
@@ -127,13 +127,21 @@ click discards typing with no undo.
 ## API URL resolution
 
 Three-layer fallback in `src/utils/env.js` (`resolveServerUrl`), shared by
-`App.js` and `src/utils/adminApi.js`:
+`App.jsx` and `src/utils/adminApi.js`:
 
 1. `window.__ENV__.REACT_APP_SERVER_URL` — injected at container start by
    `docker-entrypoint.d/40-env-config.sh`, which overwrites
    `public/env-config.js`. This is what production uses (value: `"api"`).
 2. `process.env.REACT_APP_SERVER_URL` — dev only.
 3. `""` — same-origin.
+
+`process.env` still resolves because `vite.config.mjs` **defines** those keys
+from `loadEnv`, which is why `env.js` and `.env.local` were not touched by the
+Vite migration. Deliberately not `import.meta.env`: `env.js` gates its dev layer
+on `NODE_ENV === "development"`, which is `"test"` under Vitest, while
+`import.meta.env.DEV` is **true** there — and `.env.local` sets
+`REACT_APP_ADMIN=true`, so the switch would paint admin chrome into every
+accessibility assertion.
 
 A bare path like `"api"` is made root-relative (`"/api"`) before use. Taken
 as-is it resolves against the page's directory, so `/resume/` would fetch
@@ -252,39 +260,39 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
   identically in three files; `.info`, `.body`, `.title`, `.hidden` also
   collide. A new top-level class name can silently restyle another section —
   check with `grep -rn '^\.classname' src/` before adding one.
-- `DISABLE_ESLINT_PLUGIN=true` in the build script, so lint errors will not
-  fail a build.
-- CRA 5 / React 17 are both unmaintained.
+- **No linter runs in the build.** CRA's eslint plugin was disabled in the build
+  script and left with the rest of CRA; nothing replaced it.
 - CRA boilerplate is replaced: `manifest.json`, the `<meta
-  name="description">` and `App.test.js` were all rewritten. (An earlier
+  name="description">` and `App.test.jsx` were all rewritten. (An earlier
   version of this file listed them as outstanding.)
 
 ## Tests
 
-`npm test` runs 175 cases across 6 suites. They cover the two places this app
+`npm test` runs 175 cases across 6 files under Vitest. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
 a property that spans nine component files and that no single component test
 can protect.
 
-The star rating's text alternative is NOT asserted in `site/index.test.js`,
+The star rating's text alternative is NOT asserted in `site/index.test.jsx`,
 despite what an earlier version of this file said. It lives in
-`src/components/abilityitem/index.test.js` along with the shape-not-colour,
+`src/components/abilityitem/index.test.jsx` along with the shape-not-colour,
 string-coercion and clamping assertions — verified by grep, not assumed.
 
-`package.json` maps `^axios$` to `axios/dist/node/axios.cjs`; axios 1.x is ESM
-and CRA's Jest does not transform `node_modules`, so without the mapping the
-suite fails to parse before running a single test.
+Vitest config lives in `vite.config.mjs`. `mockReset: true` is load-bearing: it
+replaces CRA's implicit `resetMocks`, and every test sets its mock inline and
+depends on the previous one being gone.
 
 Deliberately NOT tested, because jsdom loads no CSS and does no layout:
 breakpoints, contrast ratios, focus rings, and `.visually-hidden` vs `.hidden`.
 An assertion there would pass vacuously and license CSS changes nobody checked.
 Verify those in a browser.
 
-Note `@testing-library/react` 9.5 resolves a nested dom-testing-library 6.16,
-which **silently ignores** the `level` option on `getAllByRole('heading', ...)`
-— so the canonical single-`h1` assertion passes regardless of the markup. The
-suite uses `querySelectorAll` where that matters.
+`@testing-library/react` 16 resolves dom-testing-library 10, which **honours**
+the `level` option on `getAllByRole('heading', ...)`. RTL 9.5's nested 6.16
+silently ignored it, which is why heading structure is asserted with
+`querySelectorAll` — now a deliberate choice rather than a workaround, since tag
+names are what no query-layer change can reinterpret.
 
 ## Certificate monitoring
 
@@ -335,9 +343,10 @@ is watching whether the monitor still runs.
 ## Commands
 
 ```
-npm start     # dev server, port 3000
-npm run build # production build to build/
-npm test      # 175 tests, 6 suites
+npm start       # vite dev server, port 3000
+npm run build   # production build to build/
+npm test        # vitest, 175 tests, 6 files
+npm run preview # serve the built output
 ```
 
-Do not run `npm run eject`. Do not commit `.env.local`.
+Do not commit `.env.local`.

@@ -7,7 +7,7 @@
 // FUNCTIONS, not exported constants, and that is load-bearing rather than
 // stylistic. window.__ENV__ is written by public/env-config.js -- a plain
 // <script> that runs before the bundle -- so a constant evaluated at import
-// would be correct in the browser. It is NOT correct under test: src/App.test.js
+// would be correct in the browser. It is NOT correct under test: src/App.test.jsx
 // assigns window.__ENV__ inside individual tests and deletes it in afterEach,
 // long after this module was imported. A constant freezes the first value and
 // those tests fail. Reading per call also preserves the exact semantics App.js
@@ -23,7 +23,7 @@ function runtimeEnv() {
 // "/resume/" -- which nginx answers with index.html, and the merge turns into a
 // hollow resume. So a bare path is made root-relative here, once, for every
 // caller. "" (same origin) and absolute URLs ("http://localhost:5000" in
-// .env.local) pass through untouched. src/App.test.js pins all three.
+// .env.local) pass through untouched. src/App.test.jsx pins all three.
 //
 //   1. window.__ENV__.REACT_APP_SERVER_URL -- written at container start by
 //      docker-entrypoint.d/40-env-config.sh. This is what production uses.
@@ -60,7 +60,7 @@ export function resolveServerUrl() {
 // Both `true` and "true" are accepted: nginx's inline body emits a JS boolean,
 // while a shell-templated env-config.js would emit a string.
 //
-// The existing suite renders with no window.__ENV__ at all (App.test.js sets
+// The existing suite renders with no window.__ENV__ at all (App.test.jsx sets
 // only REACT_APP_SERVER_URL), so this is false throughout it and the public DOM
 // stays byte-identical.
 export function isAdminUi() {

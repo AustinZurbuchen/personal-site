@@ -17,7 +17,7 @@ is the correct instinct here.
 
 ```
 src/components/<name>/
-  index.js
+  index.jsx
   index.scss
 ```
 
@@ -55,7 +55,7 @@ export default Projects;
 }
 ```
 
-Then register it in `src/components/site/index.js`, in band order. `Site`
+Then register it in `src/components/site/index.jsx`, in band order. `Site`
 renders the whole page as a stack; there is no router-level layout.
 
 Do **not** redefine `.container` in the new SCSS. It is already defined

@@ -6,7 +6,7 @@ import "./index.scss";
 // request and the controls; this file only decides what is on screen.
 //
 // `edit` is undefined on the public site and in every existing test -- the only
-// call src/components/site/index.test.js ever produces is
+// call src/components/site/index.test.jsx ever produces is
 // <Aboutme title body />, via Profile -- so `editing` is false, the ternary
 // below renders `body` exactly where {body} used to sit, and the rendered DOM
 // is byte-identical to what it was before edit mode existed. No wrapper element

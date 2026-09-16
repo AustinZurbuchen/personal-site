@@ -21,7 +21,7 @@ import "./index.scss";
 //     also lock the operator out of signing in;
 //   * src/components/site/index.js is therefore not modified at all by this
 //     feature, which is the strongest possible guarantee for the 57 structural
-//     assertions in src/components/site/index.test.js.
+//     assertions in src/components/site/index.test.jsx.
 function Adminbar() {
   const signedIn = useSelector(selectSignedIn);
   const dispatch = useDispatch();

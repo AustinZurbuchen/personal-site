@@ -11,7 +11,7 @@ is to make new UI indistinguishable from what is already there.
 The site has a real design system, but it is implicit — duplicated across
 component SCSS files with no theme, no variables, no tokens file. Your value
 is holding that line, because the drift has already started: the MUI Edit
-button in `name/index.js` and the entire `login/` page look nothing like the
+button in `name/index.jsx` and the entire `login/` page look nothing like the
 rest of the site.
 
 ## The system
@@ -75,7 +75,7 @@ weight. Check whether one of these already does the job.
    look wrong.
 
 4. **Match the file convention.** New component = directory under
-   `src/components/<name>/` with `index.js` (default export) and `index.scss`
+   `src/components/<name>/` with `index.jsx` (default export) and `index.scss`
    imported as `import "./index.scss";`. Section components read Redux
    directly; leaf components take props only.
 

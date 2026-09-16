@@ -47,15 +47,15 @@ exist, so they are not undone:
 - The markup is `div` all the way down. No `<header>`, `<main>`, `<section>`,
   `<footer>`, no `<h1>`–`<h3>`. The name renders as a styled `div`, not a
   heading.
-- `Photo` (`components/photo/index.js`) is an empty `div` with no image and no
+- `Photo` (`components/photo/index.jsx`) is an empty `div` with no image and no
   alt text.
 - Footer links are `#727878` on `#444242` — roughly 2.3:1, well under the 4.5:1
   WCAG AA threshold for body text. (Fixed: now `#dfe0e0` at 7.55:1.)
-- Star ratings in `utils/abilities.js` are `&#9733;` glyphs in bare divs. A
+- Star ratings in `utils/abilities.jsx` are `&#9733;` glyphs in bare divs. A
   screen reader announces a row of "black star" with no rating value. These
   need a text alternative (e.g. `role="img"` with an `aria-label` of
   "ReactJS: 5 out of 5").
-- The custom `Button` (`components/button/index.js`) is a clickable `div` —
+- The custom `Button` (`components/button/index.jsx`) is a clickable `div` —
   not focusable, not keyboard-activatable, no role.
 - `subtitle`/`by` text at `#727878` on the light bands is marginal; check each.
 
@@ -90,9 +90,7 @@ exist, so they are not undone:
 
 ## Verifying
 
-`npm start` and check at 375px, 768px, and desktop. Note that `npm test`
-currently fails on leftover CRA boilerplate in `App.test.js` — that failure is
-pre-existing and unrelated to your changes; do not try to fix it by weakening
-a test.
+`npm start` and check at 375px, 768px, and desktop. `npm test` (Vitest) is green
+at 175 — a failure is yours, so do not fix it by weakening a test.
 
 Report contrast ratios numerically when you change a color pair.

@@ -150,7 +150,7 @@ describe("edit flow: the public render gains nothing", () => {
     expect(queryByLabelText("Username")).toBeNull();
     // The structural properties the 57 existing assertions protect, restated
     // here so a regression is caught in this file too rather than only in
-    // site/index.test.js.
+    // site/index.test.jsx.
     expect(container.querySelectorAll("h1")).toHaveLength(1);
     expect(container.querySelectorAll("section")).toHaveLength(3);
     expect(container.querySelectorAll("button")).toHaveLength(0);
@@ -1947,7 +1947,7 @@ describe("edit flow: editing experience rows", () => {
     expect(count("li")).toBe(before.items);
 
     // The <h4>s still have to be headings, not fields wearing a heading's
-    // class -- the level walk in site/index.test.js reads tag names.
+    // class -- the level walk in site/index.test.jsx reads tag names.
     const levels = Array.prototype.slice
       .call(container.querySelectorAll("h1,h2,h3,h4,h5,h6"))
       .map((node) => Number(node.tagName[1]));
@@ -2643,7 +2643,7 @@ describe("edit flow: adding and removing rows", () => {
 
     openAbilities(container);
 
-    // site/index.test.js asserts every <li> has a <ul> parent and counts them.
+    // site/index.test.jsx asserts every <li> has a <ul> parent and counts them.
     // A button inside the <ul> is invalid markup a real parser relocates, and
     // one wrapped in an <li> would be counted as an item.
     expect(container.querySelectorAll(".listitems .listadd")).toHaveLength(0);

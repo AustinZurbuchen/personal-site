@@ -12,10 +12,12 @@ import { resumeFixture } from "../../test-utils/fixtures";
 //
 // These assertions are deliberately written against the DOM (querySelectorAll /
 // attribute lookup) rather than ByRole where ByRole is unreliable on this
-// toolchain. dom-testing-library 6.16 -- the copy @testing-library/react 9.5
-// actually resolves -- silently IGNORES the `level` option on ByRole queries, so
-// `getAllByRole("heading", { level: 1 })` returns every heading on the page and
-// the canonical single-h1 assertion passes no matter what the markup says.
+// toolchain. dom-testing-library 10 -- what @testing-library/react 16 resolves --
+// HONOURS the `level` option on ByRole queries, but 6.16 under RTL 9.5 silently
+// ignored it, so `getAllByRole("heading", { level: 1 })` returned every heading
+// and the canonical single-h1 assertion passed no matter what the markup said.
+// The DOM-shaped assertions below are now a deliberate choice rather than a
+// workaround: they pin tag names, which no query-layer change can reinterpret.
 
 describe("Site: landmarks and headings", () => {
   it("has exactly one banner, one main and one contentinfo", () => {

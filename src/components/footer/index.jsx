@@ -30,7 +30,7 @@ function Footer() {
   // whose href you are in the middle of retyping is not a link, and offering it
   // as one invites a click that navigates away mid-edit and loses the draft.
   // The <ul> and its three <li>s stay exactly as they are, so the list
-  // semantics site/index.test.js pins are untouched -- only the cell changes,
+  // semantics site/index.test.jsx pins are untouched -- only the cell changes,
   // the same way the <dd>s do in components/details/.
   const linkField = (path, id, label) =>
     editor.editing ? (
@@ -50,7 +50,7 @@ function Footer() {
     <footer className="footer">
       <div className="container">
         {/* Inside the existing contentinfo landmark, never wrapping it:
-            site/index.test.js asserts exactly one contentinfo, one banner and
+            site/index.test.jsx asserts exactly one contentinfo, one banner and
             one main. `dark` because this band is #444242 -- the controls carry
             .editcontroldark, and the field, status and error are darkened by the
             .footer-scoped rules in index.scss. */}
