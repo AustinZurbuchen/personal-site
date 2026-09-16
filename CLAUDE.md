@@ -6,10 +6,12 @@ Flask API (separate repo, `../personal-site-py`).
 
 ## Stack
 
-CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · react-router-dom 6 ·
-axios · Sass. **No component library** — MUI and Emotion were removed once the
-login page was deleted, taking the bundle from 375KB to 219KB. Do not add one
-back; the design system is hand-rolled SCSS and a library's defaults fight it. Deployed as a Docker image (node:20-alpine
+CRA 5 (`react-scripts`) · React 17 · Redux Toolkit · axios · Sass. **No
+component library** — MUI and Emotion were removed once the login page was
+deleted, taking the bundle from 375KB to 219KB. Do not add one back; the design
+system is hand-rolled SCSS and a library's defaults fight it. **No router
+either** — it is one page, and a single `path="/"` route rendered a blank page
+on every other path nginx answers with `index.html`. Deployed as a Docker image (node:20-alpine
 build → nginx:1.27-alpine serve) on an Unraid NAS behind Nginx Proxy Manager
 (openresty), DNS via Namecheap.
 
@@ -21,9 +23,9 @@ checkout or compose project on the NAS. `.github/workflows/publish.yml` builds
 `docker-compose.yml` documents the intended topology and is useful locally,
 but it is **not** what runs in production.
 
-**Production runs the `dev` branch, not `master`.** `master` lags and does not
-contain the deploy machinery. Always confirm `git log origin/dev` before
-assuming what is live.
+**Production runs the `dev` branch, not `master`.** `publish.yml` fires on
+push to `dev`; `master` catches up by PR (as in #10) and can lag it. Always
+confirm `git log origin/dev` before assuming what is live.
 
 ## Component convention
 
@@ -96,6 +98,17 @@ token is deliberately NOT here -- it lives in sessionStorage, owned by
 `src/utils/adminSession.js`, so a DevTools state snapshot never contains a
 write credential.
 
+Rows can be ADDED and REMOVED in all four list sections. The server needed no
+change for it: `validate_list` takes any list of 1..`MAX_ROWS` and replaces the
+array, so row count was never the constraint. What the UI owes it is the two
+guards — the last row of a list cannot be removed, because an empty array is a
+section-wipe the server refuses outright, and `MAX_ROWS` is mirrored here so a
+control never produces a request that is certain to fail.
+
+A new work row carries all seven keys including `startDate` / `endDate` /
+`isCurrent`, which is why those became editable first: four keys are refused
+with "row N: missing endDate, isCurrent, startDate".
+
 Four sections are editable and between them cover every path the server
 allows: `profile` (subtitle, About Me, name, age, location), `experiences` and
 `abilities` (each a quote plus two whole lists of rows), and `contact` (a quote
@@ -113,7 +126,8 @@ click discards typing with no undo.
 
 ## API URL resolution
 
-Three-layer fallback in `App.js`:
+Three-layer fallback in `src/utils/env.js` (`resolveServerUrl`), shared by
+`App.js` and `src/utils/adminApi.js`:
 
 1. `window.__ENV__.REACT_APP_SERVER_URL` — injected at container start by
    `docker-entrypoint.d/40-env-config.sh`, which overwrites
@@ -121,9 +135,14 @@ Three-layer fallback in `App.js`:
 2. `process.env.REACT_APP_SERVER_URL` — dev only.
 3. `""` — same-origin.
 
-The var is `REACT_APP_SERVER_URL`. Note `.env.local` currently defines
-`REACT_APP_API_URL`, which is the **old** name and is ignored — local dev
-against a remote API will not work until that key is renamed.
+A bare path like `"api"` is made root-relative (`"/api"`) before use. Taken
+as-is it resolves against the page's directory, so `/resume/` would fetch
+`/resume/api/getResume` — which nginx answers with `index.html`. Absolute URLs
+and `""` pass through.
+
+The var is `REACT_APP_SERVER_URL`. `.env.local` leaves it empty, so `npm start`
+fetches the stub at `public/getResume` and needs no backend; set it to a full
+URL (e.g. `http://localhost:5000`) to develop against a real API.
 
 nginx proxies `/api/` → `http://personal-site-py:5000/`, so the frontend and
 backend are same-origin in production and CORS is not exercised.
@@ -233,8 +252,6 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
   identically in three files; `.info`, `.body`, `.title`, `.hidden` also
   collide. A new top-level class name can silently restyle another section —
   check with `grep -rn '^\.classname' src/` before adding one.
-- **Zero media queries app-wide.** `padding: 40px 180px` and `width: 33%`
-  columns mean the site does not work on mobile.
 - `DISABLE_ESLINT_PLUGIN=true` in the build script, so lint errors will not
   fail a build.
 - CRA 5 / React 17 are both unmaintained.
@@ -244,7 +261,7 @@ and the focus ring is `#434242` (`#dfe0e0` inside the footer).
 
 ## Tests
 
-`npm test` runs 152 cases across 6 suites. They cover the two places this app
+`npm test` runs 175 cases across 6 suites. They cover the two places this app
 can regress silently: the `resume` reducer's merge, and the accessibility
 structure of the page (landmarks, one `h1`, heading nesting, list semantics) —
 a property that spans nine component files and that no single component test
@@ -295,6 +312,15 @@ The heartbeat commit under `monitor/` is not noise: public repos have scheduled
 workflows auto-disabled after 60 days of inactivity, and this repo has had
 several quiet stretches longer than that.
 
+It also checks that both containers run the image CI last published — three
+times in one day a container served code nobody thought it was, and nothing on
+the NAS can see that. Each image carries its commit (`GIT_SHA`): the API reports
+it at `GET /api/version`, the site in a static `/version.json`. Each is compared
+with the head commit of its repo's last *successful* "Publish image" run —
+`personal-site-py` master, this repo's `dev` — not with the branch HEAD, which
+also moves on docs-only pushes that `publish.yml` skips. After a deploy-worthy
+push it reads WARN until the container is Force Updated in Unraid.
+
 **Who watches the watcher.** Everything above can only report a problem while
 the workflow is still running; a workflow that stops firing produces no output
 to inspect, so nothing in this repo can detect its own silence. The
@@ -311,7 +337,7 @@ is watching whether the monitor still runs.
 ```
 npm start     # dev server, port 3000
 npm run build # production build to build/
-npm test      # 152 tests, 6 suites
+npm test      # 175 tests, 6 suites
 ```
 
 Do not run `npm run eject`. Do not commit `.env.local`.

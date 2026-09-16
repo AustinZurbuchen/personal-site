@@ -11,3 +11,21 @@
   margin: 0;
   padding: 0;
 }
+
+// The Add control below a list. Left-aligned, opposite the per-row Remove on
+// the right, so "adds a row here" and "removes this row" never read as a pair.
+.listadd {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.listaddnote {
+  margin: 0;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  color: #434242;
+}

@@ -1842,7 +1842,12 @@ describe("edit flow: editing experience rows", () => {
     expect(row.querySelector("p.experiencetitle textarea")).not.toBeNull();
     expect(row.querySelector("p.body textarea")).not.toBeNull();
     expect(row.querySelectorAll("h4")).toHaveLength(1);
-    expect(row.querySelectorAll("p")).toHaveLength(2);
+    // The two CONTENT paragraphs, named rather than counted. A raw count of
+    // <p> broke the moment the row grew an explanatory note, which is a real
+    // paragraph doing a real job -- the assertion was about nesting, not about
+    // the row never gaining prose.
+    expect(row.querySelectorAll("p.experiencetitle")).toHaveLength(1);
+    expect(row.querySelectorAll("p.body")).toHaveLength(1);
     // No block element smuggled inside a paragraph.
     expect(row.querySelectorAll("p div")).toHaveLength(0);
     expect(row.querySelectorAll("h4 div")).toHaveLength(0);
@@ -2202,5 +2207,487 @@ describe("edit flow: the save history", () => {
     expect(row.textContent).toMatch(/date unknown/i);
     expect(row.textContent).toMatch(/no paths recorded/i);
     expect(row.querySelector("time").getAttribute("datetime")).toBeNull();
+  });
+});
+
+// ===========================================================================
+// The three keys a work row sorts on and never shows. Before these were
+// editable the visible dateLabel could say one thing while the row sorted by
+// another, with no way to see the disagreement short of opening Atlas -- and a
+// work row could not be ADDED at all, because LIST_SCHEMAS requires all seven
+// keys and only four had controls.
+// ===========================================================================
+describe("edit flow: a work row's hidden sort keys", () => {
+  const signedInApp = async (fixture) => {
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
+    const utils = renderApp();
+    await wait(() => {
+      expect(utils.container.querySelector("h1")).not.toBeNull();
+    });
+    return utils;
+  };
+
+  const openExperiences = (container) =>
+    fireEvent.click(control(container, "Edit", "Experiences"));
+
+  const at = (container, list, i, key) =>
+    container.querySelector("#experiences-" + list + "-" + i + "-" + key + "Edit");
+
+  const workFixture = () => {
+    const f = resumeFixture();
+    f.experiences.work[0].startDate = "2021-05";
+    f.experiences.work[0].endDate = "2022-07";
+    f.experiences.work[0].isCurrent = false;
+    f.experiences.work[1].startDate = "2018-07";
+    f.experiences.work[1].endDate = "2020-01";
+    f.experiences.work[1].isCurrent = false;
+    return f;
+  };
+
+  it("offers them on work rows and never on school rows", async () => {
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+
+    expect(at(container, "work", 0, "startDate")).not.toBeNull();
+    expect(at(container, "work", 0, "endDate")).not.toBeNull();
+    expect(at(container, "work", 0, "isCurrent")).not.toBeNull();
+
+    // A school row's schema is four keys and nothing else. Growing one of these
+    // would make the whole list unsavable, with the server naming a key the
+    // operator never asked for.
+    expect(at(container, "school", 0, "startDate")).toBeNull();
+    expect(at(container, "school", 0, "endDate")).toBeNull();
+    expect(at(container, "school", 0, "isCurrent")).toBeNull();
+  });
+
+  it("is a real checkbox carrying the stored boolean", async () => {
+    const fixture = workFixture();
+    fixture.experiences.work[0].isCurrent = true;
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+
+    const box = at(container, "work", 0, "isCurrent");
+    expect(box.type).toBe("checkbox");
+    expect(box.checked).toBe(true);
+    expect(at(container, "work", 1, "isCurrent").checked).toBe(false);
+  });
+
+  it("names the date fields by their visible label, not an aria-label", async () => {
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+
+    const start = at(container, "work", 0, "startDate");
+    const labelId = start.getAttribute("aria-labelledby");
+    expect(labelId).toBeTruthy();
+    // These hold "2022-07" in a box that explains nothing otherwise -- least of
+    // all on a new row, where it is empty. The visible text and the accessible
+    // name are the same string by construction.
+    expect(container.querySelector("#" + labelId).textContent).toMatch(/Start/);
+    expect(start.getAttribute("aria-label")).toBeNull();
+  });
+
+  it("sends the boolean as a boolean, never as a string", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+    fireEvent.click(at(container, "work", 0, "isCurrent"));
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const [, body] = axios.put.mock.calls[0];
+    const sent = body.updates["experiences.work"][0];
+    // LIST_SCHEMAS refuses an int for this, because sort_work_items branches on
+    // truthiness and a stray 1 works right up until someone stores "0".
+    expect(sent.isCurrent).toBe(true);
+    expect(typeof sent.isCurrent).toBe("boolean");
+  });
+
+  it("saves an edited sort key alongside the label it belongs to", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp(workFixture());
+
+    openExperiences(container);
+    fireEvent.change(at(container, "work", 0, "startDate"), {
+      target: { value: "2021-06" },
+    });
+    fireEvent.change(at(container, "work", 0, "dateLabel"), {
+      target: { value: "June 2021 - July 2022" },
+    });
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const sent = axios.put.mock.calls[0][1].updates["experiences.work"][0];
+    // The whole point: the label and the key it sorts by can now be corrected
+    // together, in one place.
+    expect(sent.startDate).toBe("2021-06");
+    expect(sent.dateLabel).toBe("June 2021 - July 2022");
+    expect(sent.endDate).toBe("2022-07");
+  });
+
+  it("adds no heading while showing them", async () => {
+    const { container } = await signedInApp(workFixture());
+    const headings = () => container.querySelectorAll("h1,h2,h3,h4,h5,h6").length;
+    const before = headings();
+
+    openExperiences(container);
+
+    // The "sort order only" note is a <p>. An <h5> would be valid today and
+    // wrong the moment the <h4> above it changes level.
+    expect(headings()).toBe(before);
+    expect(container.querySelector(".sortkeynote").tagName).toBe("P");
+  });
+});
+
+// The convention Editcontrol states, applied to the one non-button control:
+// aria-disabled and a guarded handler, never the disabled attribute.
+describe("edit flow: the current-role checkbox during a save", () => {
+  it("stays focusable while a save is in flight", async () => {
+    enableAdminUi();
+    seedStoredSession();
+    const fixture = resumeFixture();
+    fixture.experiences.work[0].startDate = "2021-05";
+    fixture.experiences.work[0].endDate = "2022-07";
+    fixture.experiences.work[0].isCurrent = false;
+    axios.get.mockResolvedValue({ data: fixture });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1")).not.toBeNull();
+    });
+
+    // A save that never settles, so the in-flight state stays observable.
+    axios.put.mockImplementation(() => new Promise(() => {}));
+
+    fireEvent.click(control(container, "Edit", "Experiences"));
+    fireEvent.change(
+      container.querySelector("#experiences-work-0-dateLabelEdit"),
+      { target: { value: "changed" } }
+    );
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    const box = container.querySelector("#experiences-work-0-isCurrentEdit");
+    await wait(() => {
+      expect(box.getAttribute("aria-disabled")).toBe("true");
+    });
+    // A disabled control is blurred and dropped from the tab order, which would
+    // throw a keyboard user out of the row mid-save.
+    expect(box.disabled).toBe(false);
+
+    // And it still refuses the change.
+    const before = box.checked;
+    fireEvent.click(box);
+    expect(container.querySelector("#experiences-work-0-isCurrentEdit").checked).toBe(before);
+  });
+});
+
+// ===========================================================================
+// Adding and removing rows. The server already accepted this -- validate_list
+// takes any list of 1..MAX_ROWS and replaces the array, so row COUNT was never
+// the constraint. What was missing was controls, the seven-key work row, and
+// the two guards that stop the UI producing a request the server must refuse.
+// ===========================================================================
+describe("edit flow: adding and removing rows", () => {
+  const signedInApp = async (fixture) => {
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: fixture || resumeFixture() });
+    const utils = renderApp();
+    await wait(() => {
+      expect(utils.container.querySelector("h1")).not.toBeNull();
+    });
+    return utils;
+  };
+
+  const openAbilities = (c) => fireEvent.click(control(c, "Edit", "Abilities"));
+  const openExperiences = (c) => fireEvent.click(control(c, "Edit", "Experiences"));
+  const langRows = (c) => c.querySelectorAll(".languages .abilityitem");
+  const langNames = (c) =>
+    Array.prototype.slice
+      .call(c.querySelectorAll(".languages .abilityitem textarea"))
+      .map((t) => t.value);
+
+  it("adds a blank ability row at the end and puts the caret in it", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInApp(fixture);
+
+    openAbilities(container);
+    const before = langRows(container).length;
+    fireEvent.click(control(container, "Add", "language"));
+
+    expect(langRows(container)).toHaveLength(before + 1);
+    const names = langNames(container);
+    // Last, not wherever a zero rating would sort it -- the operator just
+    // pressed a button and should find the result where they were looking.
+    expect(names[names.length - 1]).toBe("");
+    expect(names.slice(0, before)).toEqual(
+      fixture.abilities.languages.map((r) => r.ability)
+    );
+    expect(document.activeElement.value).toBe("");
+    expect(document.activeElement.id).toMatch(/abilities-languages-\d+-abilityEdit/);
+  });
+
+  it("sends a new ability row with exactly the schema's keys", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    fireEvent.click(control(container, "Add", "language"));
+    fireEvent.change(document.activeElement, { target: { value: "Rust" } });
+    fireEvent.click(control(container, "Save", "Abilities"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const sent = axios.put.mock.calls[0][1].updates["abilities.languages"];
+    const added = sent[sent.length - 1];
+    // A missing key and an extra key are both refused, and the error would name
+    // a row the operator never typed into.
+    expect(Object.keys(added).sort()).toEqual(["ability", "stars"]);
+    expect(added.ability).toBe("Rust");
+    expect(added.stars).toBe("0");
+  });
+
+  it("sends a new WORK row with all seven keys", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const fixture = resumeFixture();
+    fixture.experiences.work.forEach((row) => {
+      row.startDate = "2020-01";
+      row.endDate = "2021-01";
+      row.isCurrent = false;
+    });
+    const { container } = await signedInApp(fixture);
+
+    openExperiences(container);
+    fireEvent.click(control(container, "Add", "career"));
+    fireEvent.change(document.activeElement, { target: { value: "New Place" } });
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const sent = axios.put.mock.calls[0][1].updates["experiences.work"];
+    const added = sent[sent.length - 1];
+    // This is why the sort keys had to become editable first: four keys would
+    // be refused with "row N: missing endDate, isCurrent, startDate".
+    expect(Object.keys(added).sort()).toEqual([
+      "body", "company", "dateLabel", "endDate", "isCurrent", "startDate", "title",
+    ]);
+    expect(added.company).toBe("New Place");
+    expect(added.isCurrent).toBe(false);
+  });
+
+  it("adds a school row with four keys, never the work seven", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const { container } = await signedInApp();
+
+    openExperiences(container);
+    fireEvent.click(control(container, "Add", "education"));
+    fireEvent.change(document.activeElement, { target: { value: "A School" } });
+    fireEvent.click(control(container, "Save", "Experiences"));
+
+    await wait(() => {
+      expect(container.querySelector(".editstatus").textContent).toBe("Saved");
+    });
+
+    const sent = axios.put.mock.calls[0][1].updates["experiences.school"];
+    const added = sent[sent.length - 1];
+    expect(Object.keys(added).sort()).toEqual(["body", "company", "dateLabel", "title"]);
+  });
+
+  it("removes the right row, not the one at that screen position", async () => {
+    axios.put.mockResolvedValue({ data: resumeFixture() });
+    const fixture = resumeFixture();
+    // Stored order and star order deliberately DISAGREE: Dart is stored second
+    // but rates higher, so it paints first. Removing "Dart" by its control must
+    // drop Dart, not whatever sits at draft index 0.
+    fixture.abilities.languages = [
+      { ability: "JavaScript", stars: "1" },
+      { ability: "Dart", stars: "5" },
+      { ability: "Go", stars: "3" },
+    ];
+    const { container } = await signedInApp(fixture);
+
+    openAbilities(container);
+    expect(langNames(container)).toEqual(["Dart", "Go", "JavaScript"]);
+
+    fireEvent.click(control(container, "Remove", "Dart"));
+
+    expect(langNames(container)).toEqual(["Go", "JavaScript"]);
+  });
+
+  it("keeps the remaining rows in order after a removal", async () => {
+    const fixture = resumeFixture();
+    fixture.abilities.languages = [
+      { ability: "A", stars: "5" },
+      { ability: "B", stars: "4" },
+      { ability: "C", stars: "3" },
+      { ability: "D", stars: "2" },
+    ];
+    const { container } = await signedInApp(fixture);
+
+    openAbilities(container);
+    // Remove the middle one. Every draft index above it shifts down, and a
+    // mapping that did not shift with it would scramble the list.
+    fireEvent.click(control(container, "Remove", "B"));
+
+    expect(langNames(container)).toEqual(["A", "C", "D"]);
+  });
+
+  it("refuses to remove the last row, and says why", async () => {
+    const fixture = resumeFixture();
+    fixture.abilities.technologies = [{ ability: "OnlyOne", stars: "3" }];
+    const { container } = await signedInApp(fixture);
+
+    openAbilities(container);
+
+    const only = control(container, "Remove", "OnlyOne");
+    expect(only.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(only);
+    // The server refuses an empty list outright, so wiping a section stays a
+    // deliberate database operation rather than one stray click.
+    expect(container.querySelectorAll(".technologies .abilityitem")).toHaveLength(1);
+    expect(container.querySelector(".technologies .rowcontrolnote").textContent).toMatch(
+      /last row cannot be removed/i
+    );
+  });
+
+  it("an added row can be undone with Cancel", async () => {
+    const fixture = resumeFixture();
+    const { container } = await signedInApp(fixture);
+
+    openAbilities(container);
+    const before = langRows(container).length;
+    fireEvent.click(control(container, "Add", "language"));
+    expect(langRows(container)).toHaveLength(before + 1);
+
+    // Cancel discards the drafts, which is the undo for a shape change as much
+    // as for a keystroke -- so add/remove needs no confirmation of its own.
+    fireEvent.click(control(container, "Cancel", "Abilities"));
+
+    expect(langRows(container)).toHaveLength(before);
+    expect(langNames(container)).toEqual(
+      fixture.abilities.languages.map((r) => r.ability)
+    );
+  });
+
+  it("a removal is dirty, and an add-then-remove is clean again", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+    expect(
+      control(container, "Save", "Abilities").getAttribute("aria-disabled")
+    ).toBe("true");
+
+    fireEvent.click(control(container, "Add", "language"));
+    expect(
+      control(container, "Save", "Abilities").getAttribute("aria-disabled")
+    ).toBeNull();
+
+    // Value equality across the whole list, so putting the list back the way it
+    // was is genuinely clean rather than "a draft exists for this path".
+    // The row just added is blank, so it is named by its position.
+    const rows = langRows(container).length;
+    fireEvent.click(control(container, "Remove", "Language " + rows));
+    expect(
+      control(container, "Save", "Abilities").getAttribute("aria-disabled")
+    ).toBe("true");
+  });
+
+  it("offers nothing on the public site", async () => {
+    const { container } = await renderLoadedApp();
+    expect(allControls(container)).toHaveLength(0);
+    expect(container.querySelectorAll(".listadd")).toHaveLength(0);
+    expect(container.querySelectorAll(".rowcontrols")).toHaveLength(0);
+  });
+
+  it("keeps the Add control outside the list it adds to", async () => {
+    const { container } = await signedInApp();
+
+    openAbilities(container);
+
+    // site/index.test.js asserts every <li> has a <ul> parent and counts them.
+    // A button inside the <ul> is invalid markup a real parser relocates, and
+    // one wrapped in an <li> would be counted as an item.
+    expect(container.querySelectorAll(".listitems .listadd")).toHaveLength(0);
+    expect(container.querySelectorAll(".listadd")).not.toHaveLength(0);
+    container.querySelectorAll("li").forEach((li) =>
+      expect(li.parentElement.tagName).toBe("UL")
+    );
+  });
+});
+
+// The Remove control's accessible name. A screen-reader user listing buttons
+// hears only "Remove" plus this, so it has to identify a row they can see.
+describe("edit flow: naming the Remove controls", () => {
+  it("names an ability row by its ability, not by a stored index", async () => {
+    enableAdminUi();
+    seedStoredSession();
+    const fixture = resumeFixture();
+    // Stored order and display order deliberately disagree, which is what made
+    // an index meaningless: the third row on screen announced "Language 6".
+    fixture.abilities.languages = [
+      { ability: "JavaScript", stars: "1" },
+      { ability: "Dart", stars: "5" },
+      { ability: "Go", stars: "3" },
+    ];
+    axios.get.mockResolvedValue({ data: fixture });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1")).not.toBeNull();
+    });
+
+    fireEvent.click(control(container, "Edit", "Abilities"));
+
+    ["Dart", "Go", "JavaScript"].forEach((name) => {
+      expect(control(container, "Remove", name)).not.toBeNull();
+    });
+  });
+
+  it("falls back to a position for a row with no name yet", async () => {
+    enableAdminUi();
+    seedStoredSession();
+    axios.get.mockResolvedValue({ data: resumeFixture() });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1")).not.toBeNull();
+    });
+
+    fireEvent.click(control(container, "Edit", "Abilities"));
+    fireEvent.click(control(container, "Add", "language"));
+
+    // A freshly added row has nothing to be named after, and "Remove" alone
+    // would be indistinguishable from every other Remove on the page.
+    const rows = container.querySelectorAll(".languages .abilityitem").length;
+    expect(control(container, "Remove", "Language " + rows)).not.toBeNull();
+  });
+
+  it("names an experience row by its company", async () => {
+    enableAdminUi();
+    seedStoredSession();
+    const fixture = resumeFixture();
+    axios.get.mockResolvedValue({ data: fixture });
+    const { container } = renderApp();
+    await wait(() => {
+      expect(container.querySelector("h1")).not.toBeNull();
+    });
+
+    fireEvent.click(control(container, "Edit", "Experiences"));
+
+    fixture.experiences.work.forEach((row) => {
+      expect(control(container, "Remove", row.company)).not.toBeNull();
+    });
   });
 });

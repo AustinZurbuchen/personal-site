@@ -40,3 +40,19 @@
     flex: 0 0 auto;
   }
 }
+
+// An ability row is a single flex ROW of name + stars; the Remove control sits
+// on its own line beneath, so the row's two columns keep the widths read mode
+// gives them and the control does not squeeze the ability name.
+//
+// .rowcontrols and .rowcontrolnote are declared once, in
+// components/experienceitem/index.scss, and reused here. SCSS in this project
+// is globally scoped, so redeclaring them is how .container ended up defined
+// three times.
+.abilities .abilityitem {
+  flex-wrap: wrap;
+}
+
+.abilities .abilityitem .rowcontrols {
+  width: 100%;
+}

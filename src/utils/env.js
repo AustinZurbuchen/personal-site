@@ -17,14 +17,13 @@ function runtimeEnv() {
   return typeof window !== "undefined" && window.__ENV__ ? window.__ENV__ : {};
 }
 
-// Unchanged from App.js, deliberately, including the odd-looking production
-// value: REACT_APP_SERVER_URL is "api" with no leading slash in the Unraid
-// template, so `${serverUrl}/getResume` resolves relative to the document --
-// served at "/" -- and lands on /api/getResume. src/App.test.js pins the
-// invariant that the resolved URL must not rebase under a nested route; the
-// public value satisfies it only because this app has exactly one route. The
-// admin vhost's inline env-config.js uses "/api" with a leading slash, and the
-// template should be changed to match.
+// The Unraid template injects "api" with no leading slash; the admin vhost's
+// inline env-config.js injects "/api". Taken as-is, "api" resolves against the
+// page's own directory: /api/getResume from "/", but /resume/api/getResume from
+// "/resume/" -- which nginx answers with index.html, and the merge turns into a
+// hollow resume. So a bare path is made root-relative here, once, for every
+// caller. "" (same origin) and absolute URLs ("http://localhost:5000" in
+// .env.local) pass through untouched. src/App.test.js pins all three.
 //
 //   1. window.__ENV__.REACT_APP_SERVER_URL -- written at container start by
 //      docker-entrypoint.d/40-env-config.sh. This is what production uses.
@@ -33,13 +32,13 @@ function runtimeEnv() {
 export function resolveServerUrl() {
   const injected = runtimeEnv().REACT_APP_SERVER_URL;
   const runtimeServerUrl = typeof injected === "string" ? injected : "";
-
-  return (
+  const url =
     runtimeServerUrl ||
     (process.env.NODE_ENV === "development"
       ? process.env.REACT_APP_SERVER_URL || ""
-      : "")
-  );
+      : "");
+
+  return url && !url.startsWith("/") && !url.includes("://") ? `/${url}` : url;
 }
 
 // COSMETIC. This flag decides whether edit UI is RENDERED, and nothing else.
