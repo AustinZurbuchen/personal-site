@@ -1,43 +1,42 @@
 .abilityitem {
   display: flex;
   flex-direction: row;
-  justify-content: left;
+  justify-content: center;
   margin-top: 15px;
   margin-bottom: 15px;
   color: #434242;
   width: 100%;
 
+  // Name and stars are each a FULL-WIDTH row inside the wrapping .abilityitem,
+  // so the stack is stated outright rather than being a side effect of the
+  // stars failing to fit. That is what it used to be: .ability took 80%, five
+  // glyphs needed more than the remaining 20%, and .starsContainer wrapped onto
+  // its own line -- where justify-content:left pinned it against the column's
+  // left edge, under a name that was also left-aligned. The stack was never
+  // designed; it fell out of an arithmetic near-miss, which is why it looked
+  // like a spacing bug.
   .ability {
     display: flex;
-    justify-content: left;
-    width: 80%;
+    justify-content: center;
+    width: 100%;
+    // A definite width, so a long ability name wraps inside the column instead
+    // of widening the row. This is what the old 768px block's min-width:0 was
+    // compensating for, and why that block is gone.
+    min-width: 0;
   }
 
   .starsContainer {
     display: flex;
     flex-direction: row;
-    justify-content: flex-end;
+    justify-content: center;
+    width: 100%;
 
     .stars {
       display: flex;
       flex-direction: row;
-      justify-content: right;
+      justify-content: center;
       align-items: flex-end;
     }
-  }
-}
-
-// .ability is width:80% with the flex default min-width:auto, so it refuses to
-// shrink below its longest ability name and pushes the star block off the edge.
-@media (max-width: 768px) {
-  .abilities .abilityitem .ability {
-    width: auto;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .abilities .abilityitem .starsContainer {
-    flex: 0 0 auto;
   }
 }
 

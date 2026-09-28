@@ -12,23 +12,31 @@
   display: flex;
   flex-direction: row;
   justify-content: center;
+  // Replaces margin-left:20px on .technologies. That margin made the columns
+  // 50% and 50%+20px, so they were not the same width and their headings could
+  // not line up with one another -- the gap belongs to the row, not to one side
+  // of it.
+  gap: 20px;
   border-top: 1px solid #727878;
 
-  .languages {
-    width: 50%;
+  // Equal shares of what is left once the gap is taken. `width: 50%` on both
+  // plus a gap overflows the row, which is the other half of why these two
+  // columns never matched.
+  .languages,
+  .technologies {
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    justify-content: left;
     border-top: 0px;
   }
+}
 
-  .technologies {
-    width: 50%;
-    display: flex;
-    justify-content: right;
-    margin-left: 20px;
-    border-top: 0px;
-  }
+// The two column headings, centered over the column each one owns. Scoped to
+// this band deliberately: components/experiences/ renders Itemslist as well,
+// and its headings sit above left-aligned prose where centering would be wrong.
+.abilities .itemslist .listtitle {
+  text-align: center;
 }
 
 // .abilities .list beats the global .row/.column helpers on specificity. The
@@ -45,7 +53,6 @@
   }
 
   .abilities .list .technologies {
-    margin-left: 0;
     border-top: 1px solid #727878;
   }
 }
