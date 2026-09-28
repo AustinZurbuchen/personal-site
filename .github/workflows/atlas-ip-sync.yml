@@ -1,0 +1,193 @@
+# .github/workflows/atlas-ip-sync.yml
+#
+# Keeps MongoDB Atlas's IP access list pointed at the house's CURRENT public
+# address, so a residential lease change cannot take the API down the way it did
+# on 2026-09-26.
+#
+# WHY THIS EXISTS
+#   A new router meant a new DHCP lease: 98.252.87.179 -> 76.20.118.142. Two
+#   things broke together. DNS went stale (the DDNS container was pointed at
+#   `www`, which is a CNAME and therefore cannot be updated, instead of the
+#   apex), and Atlas's access list still named the old address.
+#
+#   The Atlas half is the nastier of the two to diagnose. Atlas accepts the TCP
+#   connection from ANY source and only then kills the TLS handshake with alert
+#   80 (internal_error). So a port probe reports the shard as open, the app
+#   hangs for pymongo's full 30s serverSelectionTimeoutMS, and the user gets a
+#   generic 500 with nothing in it naming the cause. The real error only appears
+#   in the container log.
+#
+# WHY IT RUNS HERE AND NOT ON THE NAS
+#   The NAS knows its own egress address directly, which is the better source.
+#   But the box is driven by Unraid's Docker Manager and this repo has no write
+#   path onto it, so the apex A record stands in -- correct precisely as long as
+#   the DDNS container is updating `@`, which is why step 2 below proves the
+#   address rather than trusting it.
+#
+# WHY IT IS NOT PART OF cert-check.yml
+#   cert-check is an OBSERVER and has to stay green unless the site is genuinely
+#   wrong. Folding a third-party WRITE into it means an Atlas API outage turns
+#   the certificate monitor red, and a monitor that cries wolf gets muted. That
+#   is the exact failure cert-check's own thresholds are tuned to avoid.
+#
+# BRANCH
+#   Must live on the DEFAULT branch (master). GitHub runs `schedule` only there.
+#   On `dev` this would never fire and never say so.
+
+name: atlas-ip-sync
+
+on:
+  schedule:
+    # Every 30 minutes, BEST EFFORT, and the interval is a tradeoff rather than
+    # a target. GitHub delays scheduled runs, sometimes by hours -- this repo has
+    # watched cert-check's 07:17 cron fire at 13:05 -- so real latency is set by
+    # GitHub's queue, not by this number. Tightening it to */15 would therefore
+    # buy almost nothing while doubling the runs in the Actions list, and that
+    # list is where a genuine failure has to be visible. The cost of being late
+    # is the resume showing its loaderror band until the sync lands.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+# Nothing is read from or written to the repository itself.
+permissions: {}
+
+concurrency:
+  group: atlas-ip-sync
+  cancel-in-progress: false
+
+env:
+  HOST: austinzurbuchen.com
+  # Every entry this workflow creates carries this comment, and it is the ONLY
+  # thing that makes an entry eligible for deletion in step 4.
+  MARKER: 'managed-by:atlas-ip-sync'
+  ATLAS_API: 'https://cloud.mongodb.com/api/atlas/v2'
+  ATLAS_ACCEPT: 'application/vnd.atlas.2023-01-01+json'
+  LC_ALL: C
+  TZ: UTC
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sync the access list to the apex address
+        env:
+          PUB: ${{ secrets.ATLAS_PUBLIC_KEY }}
+          PRIV: ${{ secrets.ATLAS_PRIVATE_KEY }}
+          GROUP: ${{ secrets.ATLAS_GROUP_ID }}
+        run: |
+          set -Eeuo pipefail
+
+          # Unconfigured is a CLEAN NO-OP, not a failure -- the same contract
+          # cert-check gives HEALTHCHECK_URL. Failing here instead would put a
+          # red X on this repo every half hour until the secrets exist, and a
+          # workflow that is always red is a workflow nobody reads. It still
+          # names the missing secret, so this cannot be mistaken for success.
+          missing=""
+          for v in PUB PRIV GROUP; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::notice::atlas-ip-sync is inert: unset secret(s)$missing. Add ATLAS_PUBLIC_KEY, ATLAS_PRIVATE_KEY and ATLAS_GROUP_ID to enable it."
+            exit 0
+          fi
+
+          command -v dig >/dev/null || {
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq dnsutils
+          }
+
+          # ---------- 1. which address is the house on? ----------------------
+          # Asked of the domain's own nameserver rather than the runner's
+          # resolver: the apex TTL is 1800s, so a cached answer can be half an
+          # hour stale, and half an hour is the entire window this workflow
+          # exists to close.
+          NS="$(dig +short NS "$HOST" | head -1 | sed 's/\.$//')"
+          [ -n "$NS" ] || { echo "::error::no authoritative nameserver for $HOST"; exit 1; }
+          IP="$(dig +short A "$HOST" "@$NS" | grep -E '^[0-9.]+$' | tail -1)"
+          [ -n "$IP" ] || { echo "::error::$HOST has no A record at $NS"; exit 1; }
+          echo "apex A record at $NS: $IP"
+
+          # ---------- 2. prove that address is actually ours -----------------
+          # THIS GATE IS A SECURITY BOUNDARY, NOT A TIDINESS ONE. Step 1 trusts
+          # DNS, and the consequence of trusting it wrongly is handing a
+          # stranger's address credentials-free network access to the database.
+          # So the address has to prove it is the NAS -- by serving this site's
+          # own version stamp, over TLS valid for this hostname -- before it is
+          # allowed anywhere near Atlas.
+          if ! curl -fsS --max-time 15 --resolve "$HOST:443:$IP" \
+                 "https://$HOST/version.json" \
+               | jq -e '.sha | test("^[0-9a-f]{40}$")' >/dev/null; then
+            echo "::error::$IP does not serve https://$HOST/version.json -- refusing to allowlist an address that cannot prove it is the NAS"
+            exit 1
+          fi
+          echo "verified: $IP serves $HOST/version.json over a cert valid for $HOST"
+
+          # --fail-with-body so an Atlas rejection shows Atlas's own explanation
+          # instead of a bare exit code.
+          atlas() {  # atlas <method> <path> [json-body]
+            local m="$1" p="$2" b="${3:-}"
+            if [ -n "$b" ]; then
+              curl -sS --fail-with-body --digest -u "$PUB:$PRIV" \
+                -H "Accept: $ATLAS_ACCEPT" -H "Content-Type: application/json" \
+                -X "$m" --data "$b" "$ATLAS_API$p"
+            else
+              curl -sS --fail-with-body --digest -u "$PUB:$PRIV" \
+                -H "Accept: $ATLAS_ACCEPT" -X "$m" "$ATLAS_API$p"
+            fi
+          }
+
+          # ---------- 3. add it if it is missing -----------------------------
+          LIST="$(atlas GET "/groups/$GROUP/accessList?itemsPerPage=500")"
+
+          if echo "$LIST" | jq -e --arg ip "$IP" '
+                [.results[]? | select(.ipAddress == $ip or .cidrBlock == ($ip + "/32"))] | length > 0
+              ' >/dev/null; then
+            echo "atlas-ip-sync: $IP already on the access list, nothing to do"
+          else
+            echo "adding $IP"
+            # The POST body is an ARRAY even for a single entry.
+            atlas POST "/groups/$GROUP/accessList" \
+              "$(jq -nc --arg ip "$IP" --arg c "$MARKER" '[{ipAddress: $ip, comment: $c}]')" >/dev/null
+            echo "::notice::added $IP to the Atlas access list"
+
+            # Re-read rather than believe the POST. A 2xx that did not actually
+            # land would otherwise let step 4 delete the only working entry.
+            LIST="$(atlas GET "/groups/$GROUP/accessList?itemsPerPage=500")"
+            echo "$LIST" | jq -e --arg ip "$IP" \
+              '[.results[]? | select(.ipAddress == $ip)] | length > 0' >/dev/null \
+              || { echo "::error::POST succeeded but $IP is not on the list"; exit 1; }
+          fi
+
+          # ---------- 4. retire ONLY the entries this workflow created -------
+          # Deliberately narrow, and the order matters: the new address is
+          # already confirmed present above before anything is removed here.
+          # Entries added by hand -- a laptop away from home, an office, a
+          # 0.0.0.0/0 left over from a debugging session -- are none of this
+          # workflow's business, and deleting one could lock the owner out of
+          # their own database. The marker comment is the only licence to delete.
+          echo "$LIST" | jq -r --arg ip "$IP" --arg m "$MARKER" '
+                .results[]?
+                | select((.comment // "") | startswith($m))
+                | (.ipAddress // .cidrBlock)
+                | select(. != $ip and . != ($ip + "/32"))
+              ' | while read -r stale; do
+            [ -n "$stale" ] || continue
+            echo "retiring stale entry $stale"
+            atlas DELETE "/groups/$GROUP/accessList/$(jq -rn --arg s "$stale" '$s|@uri')" >/dev/null
+          done
+
+          # ---------- 5. post-condition: can the API actually read? ----------
+          # A WARNING, never a failure. This workflow's own 15-minute window
+          # means the resume can be hollow while a correct sync is still
+          # pending, and Atlas takes a moment to apply a new entry -- failing on
+          # either would make this red for reasons it just fixed. It is here
+          # because nothing else watches "the resume actually loads": cert-check
+          # asks /api/version, which answers from a constant and stays green
+          # while the database is unreachable.
+          if curl -fsS --max-time 30 "https://$HOST/api/getResume" \
+               | jq -e '.profile.name | type == "string" and length > 0' >/dev/null 2>&1; then
+            echo "atlas-ip-sync: ok ($IP) -- and the API reads the database"
+          else
+            echo "::warning::$IP is allowlisted but https://$HOST/api/getResume did not return a resume. If this persists, read the container log: docker logs --tail 50 personal-site-py | grep -i 'database error'"
+          fi
