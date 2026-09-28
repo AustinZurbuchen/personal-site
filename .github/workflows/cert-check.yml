@@ -531,7 +531,24 @@ jobs:
 
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A monitor
+          # -f is LOAD-BEARING. .gitignore carries a bare `*.env`, which matches
+          # monitor/state.env at ANY depth, so a plain `git add` staged nothing and
+          # the "nothing to commit" branch below took every single run. state.env
+          # was therefore never committed, and every run started with no previous
+          # state. Two consequences, both observed during the 2026-09-26 outage:
+          #
+          #   * UNKNOWN_STREAK reset to 1 every run and could never reach
+          #     UNKNOWN_RUNS_BEFORE_ALERT, so a site that had been unreachable
+          #     for two days never escalated past WARN. The counter printed
+          #     "attempt streak 1 of 4" on the FOURTH consecutive dead run.
+          #   * PREV_SEV defaulted to OK every run, so the tiered-urgency dedupe
+          #     above judged every run a brand-new problem and re-notified twice
+          #     a day. That logic was dead code, which is why an unchanged
+          #     outage produced a fresh alert every 12 hours.
+          #
+          # Nothing secret lands here: severity, cert fingerprint, streak,
+          # notAfter, and the apex A record, which is already public DNS.
+          git add -A -f monitor
 
           # Commit when the status actually changed, or when the repo has been
           # quiet for 30 days (GitHub disables schedules at 60 days of silence).

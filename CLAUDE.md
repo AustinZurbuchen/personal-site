@@ -320,6 +320,17 @@ The heartbeat commit under `monitor/` is not noise: public repos have scheduled
 workflows auto-disabled after 60 days of inactivity, and this repo has had
 several quiet stretches longer than that.
 
+That commit **never actually happened** until Sep 2026, and the reason is worth
+knowing because nothing reported it: `.gitignore` carries a bare `*.env`, which
+matches `monitor/state.env` at any depth, so the heartbeat step's `git add`
+staged nothing and took its own "nothing to commit" branch on every run. The
+step passed green throughout. Two designed behaviours were dead as a result --
+`UNKNOWN_STREAK` could never reach `UNKNOWN_RUNS_BEFORE_ALERT`, so a two-day
+outage never escalated past WARN, and `PREV_SEV` defaulted to OK every run, so
+the tiered-urgency dedupe re-alerted twice a day instead of staying quiet on an
+unchanged problem. The `git add` is now `-f`; if `monitor/state.env` is ever
+absent from `master` again, that is the same bug.
+
 It also checks that both containers run the image CI last published — three
 times in one day a container served code nobody thought it was, and nothing on
 the NAS can see that. Each image carries its commit (`GIT_SHA`): the API reports
