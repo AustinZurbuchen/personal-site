@@ -38,14 +38,17 @@ name: atlas-ip-sync
 
 on:
   schedule:
-    # Every 30 minutes, BEST EFFORT, and the interval is a tradeoff rather than
-    # a target. GitHub delays scheduled runs, sometimes by hours -- this repo has
-    # watched cert-check's 07:17 cron fire at 13:05 -- so real latency is set by
-    # GitHub's queue, not by this number. Tightening it to */15 would therefore
-    # buy almost nothing while doubling the runs in the Actions list, and that
-    # list is where a genuine failure has to be visible. The cost of being late
-    # is the resume showing its loaderror band until the sync lands.
-    - cron: '*/30 * * * *'
+    # Every 6 hours, BEST EFFORT, and the interval is a tradeoff rather than a
+    # target. The lease has changed once in this repo's history (a new router),
+    # so nearly every run is a no-op; at */30 those no-ops were 48 a day burying
+    # the Actions list, which is where a genuine failure has to be visible.
+    # GitHub also delays scheduled runs, sometimes by hours -- this repo has
+    # watched cert-check's 07:17 cron fire at 13:05 -- so a tighter interval
+    # never bought the latency it promised. The cost of being late is the
+    # resume showing its loaderror band until the sync lands; when you KNOW the
+    # address just changed, run this by hand (workflow_dispatch) rather than
+    # waiting. :23 stays off the top of the hour, when GitHub's queue is worst.
+    - cron: '23 */6 * * *'
   workflow_dispatch:
 
 # Nothing is read from or written to the repository itself.
@@ -80,7 +83,7 @@ jobs:
 
           # Unconfigured is a CLEAN NO-OP, not a failure -- the same contract
           # cert-check gives HEALTHCHECK_URL. Failing here instead would put a
-          # red X on this repo every half hour until the secrets exist, and a
+          # red X on this repo every run until the secrets exist, and a
           # workflow that is always red is a workflow nobody reads. It still
           # names the missing secret, so this cannot be mistaken for success.
           missing=""
@@ -100,8 +103,8 @@ jobs:
           # ---------- 1. which address is the house on? ----------------------
           # Asked of the domain's own nameserver rather than the runner's
           # resolver: the apex TTL is 1800s, so a cached answer can be half an
-          # hour stale, and half an hour is the entire window this workflow
-          # exists to close.
+          # hour stale -- a run that read it would sync the OLD address and
+          # leave the API down for a whole further interval.
           NS="$(dig +short NS "$HOST" | head -1 | sed 's/\.$//')"
           [ -n "$NS" ] || { echo "::error::no authoritative nameserver for $HOST"; exit 1; }
           IP="$(dig +short A "$HOST" "@$NS" | grep -E '^[0-9.]+$' | tail -1)"
@@ -178,7 +181,7 @@ jobs:
           done
 
           # ---------- 5. post-condition: can the API actually read? ----------
-          # A WARNING, never a failure. This workflow's own 15-minute window
+          # A WARNING, never a failure. This workflow's own interval
           # means the resume can be hollow while a correct sync is still
           # pending, and Atlas takes a moment to apply a new entry -- failing on
           # either would make this red for reasons it just fixed. It is here
